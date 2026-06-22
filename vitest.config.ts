@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    exclude: ["**/node_modules/**", "**/.react-router/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],

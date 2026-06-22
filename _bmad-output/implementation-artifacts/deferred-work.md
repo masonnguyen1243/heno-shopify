@@ -1,4 +1,10 @@
 
+## Deferred from: code review of 1-2-shopify-oauth-app-installation (2026-06-22)
+
+- Race condition khi concurrent installs cùng shop: cả hai request có thể đọc "không có row" và cùng INSERT → unique constraint violation. Cần xử lý `P2002` hoặc dùng raw upsert query
+- Upsert ghi `UPDATE uninstalledAt = null` trên mọi request authenticated, không chỉ khi reinstall — unnecessary write load ở scale cao
+- DB failure trong `app.tsx` loader không được xử lý hay log — Prisma error propagates đến `boundary.error()` nhưng không có alert path
+
 ## Deferred from: code review of 1-1-app-scaffold-database-schema-and-cicd-foundation (2026-06-22)
 
 - application_url/redirect_urls = https://example.com trong shopify.app.toml — scaffold placeholder, Shopify CLI tự cập nhật khi deploy thực tế
