@@ -1,0 +1,40 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "d8f0030938b3293999c579dd972bc848"
+name = "tingee-payment-app"
+application_url = "https://example.com"
+embedded = true
+
+[access_scopes]
+scopes = "read_orders,write_orders,read_payment_gateways,write_payment_gateways"
+
+[webhooks]
+api_version = "2025-07"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks"
+  topics = [ "app/uninstalled" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks"
+  topics = [ "customers/data_request" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks"
+  topics = [ "customers/redact" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks"
+  topics = [ "shop/redact" ]
+
+[auth]
+redirect_urls = [ "https://example.com/api/auth" ]
+
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = true
+
+[[extensions]]
+type = "ui_extension"
+handle = "order-status-ui"
+path = "extensions/order-status-ui"

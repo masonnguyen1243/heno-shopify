@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Session model - required by @shopify/shopify-app-session-storage-prisma
+model Session {
+  id                   String    @id
+  shop                 String
+  state                String
+  isOnline             Boolean   @default(false)
+  scope                String?
+  expires              DateTime?
+  accessToken          String
+  userId               BigInt?
+  firstName            String?
+  lastName             String?
+  email                String?
+  accountOwner         Boolean   @default(false)
+  locale               String?
+  collaborator         Boolean?  @default(false)
+  emailVerified        Boolean?  @default(false)
+  refreshToken         String?
+  refreshTokenExpires  DateTime?
+}
+
+model Merchant {
+  id            String              @id @default(cuid())
+  shopDomain    String              @unique @map("shop_domain")
+  installedAt   DateTime            @default(now()) @map("installed_at")
+  uninstalledAt DateTime?           @map("uninstalled_at")
+  credential    MerchantCredential?
+  @@map("merchants")
+}
+
+model MerchantCredential {
+  id                   String   @id @default(cuid())
+  merchantId           String   @unique @map("merchant_id")
+  encryptedClientId    String   @map("encrypted_client_id")
+  encryptedSecretToken String   @map("encrypted_secret_token")
+  keyVersion           Int      @default(1) @map("key_version")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  merchant             Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  @@map("merchant_credentials")
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  EXPIRED
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  orderId     String        @map("order_id")
+  shopDomain  String        @map("shop_domain")
+  status      PaymentStatus @default(PENDING)
+  qrImageUrl  String?       @map("qr_image_url")
+  deeplinkUrl String?       @map("deeplink_url")
+  amount      Int
+  expiresAt   DateTime      @map("expires_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  @@index([shopDomain, orderId])
+  @@map("payments")
+}
+
+enum ProcessedWebhookStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model ProcessedWebhook {
+  id             String                 @id @default(cuid())
+  idempotencyKey String                 @unique @map("idempotency_key")
+  status         ProcessedWebhookStatus @default(PENDING)
+  topic          String
+  shopDomain     String                 @map("shop_domain")
+  processedAt    DateTime               @default(now()) @map("processed_at")
+  payloadHash    String?                @map("payload_hash")
+  @@index([shopDomain, topic])
+  @@index([processedAt])
+  @@map("processed_webhooks")
+}

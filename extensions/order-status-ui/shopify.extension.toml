@@ -1,0 +1,10 @@
+api_version = "2025-07"
+
+[[extensions]]
+name = "Order Status UI"
+handle = "order-status-ui"
+type = "ui_extension"
+
+  [[extensions.targeting]]
+  module = "./src/index.tsx"
+  target = "customer-account.order-status.block.render"

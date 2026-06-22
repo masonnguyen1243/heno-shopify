@@ -1,0 +1,16 @@
+{
+  "name": "order-status-ui",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "shopify app build --source-control-url=\"\"",
+    "dev": "shopify app dev"
+  },
+  "dependencies": {
+    "@shopify/ui-extensions": "^2025.7.0",
+    "@shopify/ui-extensions-react": "^2025.7.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

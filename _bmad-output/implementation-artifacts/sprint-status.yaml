@@ -1,0 +1,70 @@
+# generated: 2026-06-22T03:00:00.000Z
+# last_updated: 2026-06-22T03:00:00.000Z
+# project: Tingee-Shopify-App
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: "2026-06-22T03:00:00.000Z"
+last_updated: "2026-06-22T05:00:00.000Z"
+project: Tingee-Shopify-App
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: Merchant Onboarding & App Foundation
+  epic-1: in-progress
+  1-1-app-scaffold-database-schema-and-cicd-foundation: done
+  1-2-shopify-oauth-app-installation: backlog
+  1-3-admin-settings-ui-credential-form: backlog
+  1-4-credential-validation-encryption-and-payment-method-registration: backlog
+  1-5-credential-update-and-deletion: backlog
+  1-6-app-uninstall-and-gdpr-compliance: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Buyer Payment Experience
+  epic-2: backlog
+  2-1-tingee-service-interface-and-payment-data-api: backlog
+  2-2-payment-status-polling-endpoint: backlog
+  2-3-order-status-extension-foundation-and-loading-state: backlog
+  2-4-qr-display-deeplink-button-and-mobile-detection: backlog
+  2-5-real-time-polling-status-updates-and-offline-resilience: backlog
+  2-6-countdown-timer-and-qr-expiry-state: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Payment Reconciliation & Automated Order Fulfillment
+  epic-3: backlog
+  3-1-tingee-webhook-endpoint-and-hmac-validation: backlog
+  3-2-payment-reconciliation-and-idempotency: backlog
+  3-3-shopify-order-update-retry-mechanism-and-monitoring: backlog
+  epic-3-retrospective: optional
