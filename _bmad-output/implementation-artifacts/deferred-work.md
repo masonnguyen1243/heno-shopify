@@ -1,4 +1,13 @@
 
+## Deferred from: code review of 1-4-credential-validation-encryption-and-payment-method-registration (2026-06-23)
+
+- AC2 integration test (Testcontainers): Chưa viết test thực sự connect DB để assert encryptedSecretToken là ciphertext — đánh dấu optional Task 10, cần @testcontainers/postgresql setup
+- Race condition duplicate gateway: Hai concurrent saves từ cùng shop đều read isFirstSave=true → registerPaymentMethod gọi 2 lần → Shopify tạo 2 payment gateway trùng tên. Cần per-shop mutex hoặc check existing gateways trước khi POST
+- decrypt không validate version field: Nếu có key rotation sau này và version 2 payload được load, decrypt version-1 logic sẽ chạy sai. Cần thêm version check và throw nếu không biết version
+- decrypt không wrap JSON.parse: Nếu DB bị corrupt và cipherJson không phải JSON hợp lệ, sẽ throw SyntaxError raw không có domain context. Nên wrap trong try/catch với message có ý nghĩa
+- sanitizeForLog chỉ shallow-redact: Nested objects với sensitive keys (e.g., { context: { secretToken: "abc" } }) không được redact. Hiện tại không có caller nào pass nested sensitive objects nhưng nên document
+- registerPaymentMethod embeds raw Shopify error body vào Error.message: Có thể chứa Shopify metadata/HTML. Nên truncate hoặc chỉ log status code
+
 ## Deferred from: code review of 1-3-admin-settings-ui-credential-form (2026-06-23)
 
 - AC7 error states chưa implement trong CredentialForm — TextField chưa có `error` prop hoặc error state management; thuộc phạm vi Story 1.4 khi có save action
