@@ -8,8 +8,10 @@ import {
   Badge,
   Banner,
   BlockStack,
+  InlineStack,
   Text,
   Spinner,
+  Modal,
 } from "@shopify/polaris";
 import { HideIcon, ViewIcon } from "@shopify/polaris-icons";
 
@@ -17,7 +19,7 @@ interface CredentialFormProps {
   hasCredential: boolean;
 }
 
-type ActionData = { success?: boolean; error?: string } | undefined;
+type ActionData = { success?: boolean; error?: string; deleted?: boolean } | undefined;
 
 export function CredentialForm({ hasCredential }: CredentialFormProps) {
   const fetcher = useFetcher<ActionData>();
@@ -27,8 +29,11 @@ export function CredentialForm({ hasCredential }: CredentialFormProps) {
   const [localHasCredential, setLocalHasCredential] = useState(hasCredential);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const isSubmitting = fetcher.state === "submitting";
   const saveResult = fetcher.data;
+  const isDeleting =
+    fetcher.state !== "idle" && fetcher.formData?.get("intent") === "delete";
 
   useEffect(() => {
     if (saveResult?.success) {
@@ -42,6 +47,15 @@ export function CredentialForm({ hasCredential }: CredentialFormProps) {
     return () => clearTimeout(dismissTimerRef.current);
   }, [saveResult?.success]);
 
+  useEffect(() => {
+    if (saveResult?.deleted) {
+      setLocalHasCredential(false);
+      setShowDeleteModal(false);
+      setClientId("");
+      setSecretToken("");
+    }
+  }, [saveResult?.deleted]);
+
   const errorMessage =
     saveResult?.error === "INVALID_CREDENTIALS"
       ? "Client ID hoặc Secret Token không đúng. Kiểm tra lại trong portal Tingee."
@@ -51,12 +65,16 @@ export function CredentialForm({ hasCredential }: CredentialFormProps) {
           ? "Vui lòng nhập Client ID và Secret Token."
           : saveResult?.error === "PAYMENT_METHOD_REGISTRATION_FAILED"
             ? "Credentials đã được lưu nhưng không thể đăng ký phương thức thanh toán với Shopify. Vui lòng thử lại."
-            : saveResult?.error
-              ? "Đã xảy ra lỗi khi lưu cài đặt. Vui lòng thử lại."
-              : null;
+            : saveResult?.error === "PAYMENT_METHOD_UNREGISTRATION_FAILED"
+              ? "Không thể hủy đăng ký phương thức thanh toán với Shopify. Credential chưa bị xóa. Vui lòng thử lại."
+              : saveResult?.error === "CREDENTIAL_DELETION_FAILED"
+                ? "Phương thức thanh toán đã được hủy đăng ký khỏi Shopify nhưng không thể xóa credential khỏi hệ thống. Vui lòng thử lại."
+                : saveResult?.error
+                  ? "Đã xảy ra lỗi khi lưu cài đặt. Vui lòng thử lại."
+                  : null;
 
   const isSaveDisabled =
-    isSubmitting || !clientId.trim() || !secretToken.trim();
+    isSubmitting || isDeleting || !clientId.trim() || !secretToken.trim();
 
   return (
     <Page title="Cài đặt Tingee Payment">
@@ -119,16 +137,55 @@ export function CredentialForm({ hasCredential }: CredentialFormProps) {
                     />
                   }
                 />
-                <Button
-                  variant="primary"
-                  disabled={isSaveDisabled}
-                  loading={isSubmitting}
-                  submit
-                >
-                  Lưu cài đặt
-                </Button>
+                <InlineStack gap="300">
+                  <Button
+                    variant="primary"
+                    disabled={isSaveDisabled}
+                    loading={isSubmitting}
+                    submit
+                  >
+                    Lưu cài đặt
+                  </Button>
+                  {localHasCredential && (
+                    <Button
+                      tone="critical"
+                      disabled={isSubmitting || isDeleting}
+                      loading={isDeleting}
+                      onClick={() => setShowDeleteModal(true)}
+                    >
+                      Xóa Credential
+                    </Button>
+                  )}
+                </InlineStack>
               </BlockStack>
             </fetcher.Form>
+
+            <Modal
+              open={showDeleteModal}
+              onClose={() => setShowDeleteModal(false)}
+              title="Xóa Credential Tingee"
+              primaryAction={{
+                content: "Xóa",
+                destructive: true,
+                loading: isDeleting,
+                onAction: () => {
+                  if (isDeleting) return;
+                  fetcher.submit({ intent: "delete" }, { method: "post" });
+                },
+              }}
+              secondaryActions={[
+                {
+                  content: "Hủy",
+                  onAction: () => setShowDeleteModal(false),
+                },
+              ]}
+            >
+              <Modal.Section>
+                <Text as="p">
+                  Xóa Credential sẽ hủy đăng ký phương thức thanh toán "Thanh toán qua Tingee QR" khỏi cửa hàng của bạn. Người mua sẽ không còn thấy tùy chọn này tại checkout.
+                </Text>
+              </Modal.Section>
+            </Modal>
           </BlockStack>
         </Card>
 

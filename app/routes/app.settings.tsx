@@ -14,13 +14,43 @@ import {
   InvalidCredentialsError,
   TingeeConnectionError,
 } from "../services/tingee.server";
-import { saveCredential, hasCredential } from "../services/credential.server";
-import { registerPaymentMethod } from "../services/order.server";
+import { saveCredential, hasCredential, deleteCredential } from "../services/credential.server";
+import { registerPaymentMethod, unregisterPaymentMethod } from "../services/order.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, shop } = await requireShopSession(request);
 
   const formData = await request.formData();
+  const intent = String(formData.get("intent") ?? "save");
+
+  if (intent === "delete") {
+    try {
+      await unregisterPaymentMethod(session.shop, session.accessToken!);
+    } catch (error) {
+      console.error(
+        "Unregister payment method failed",
+        sanitizeForLog({
+          shop,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        })
+      );
+      return { error: "PAYMENT_METHOD_UNREGISTRATION_FAILED" };
+    }
+    try {
+      await deleteCredential(shop);
+    } catch (error) {
+      console.error(
+        "Delete credential failed after payment method unregistered",
+        sanitizeForLog({
+          shop,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        })
+      );
+      return { error: "CREDENTIAL_DELETION_FAILED" };
+    }
+    return { deleted: true };
+  }
+
   const clientId = String(formData.get("clientId") ?? "").trim();
   const secretToken = String(formData.get("secretToken") ?? "").trim();
 
@@ -56,7 +86,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (isFirstSave) {
     try {
-      await registerPaymentMethod(session.shop, session.accessToken);
+      await registerPaymentMethod(session.shop, session.accessToken!);
     } catch (error) {
       console.error(
         "Payment method registration failed",

@@ -32,9 +32,11 @@ vi.mock("../services/tingee.server", () => ({
 vi.mock("../services/credential.server", () => ({
   saveCredential: vi.fn(),
   hasCredential: vi.fn(),
+  deleteCredential: vi.fn(),
 }));
 vi.mock("../services/order.server", () => ({
   registerPaymentMethod: vi.fn(),
+  unregisterPaymentMethod: vi.fn(),
 }));
 
 import { loader, action } from "./app.settings";
@@ -46,8 +48,8 @@ import {
   InvalidCredentialsError,
   TingeeConnectionError,
 } from "../services/tingee.server";
-import { saveCredential, hasCredential } from "../services/credential.server";
-import { registerPaymentMethod } from "../services/order.server";
+import { saveCredential, hasCredential, deleteCredential } from "../services/credential.server";
+import { registerPaymentMethod, unregisterPaymentMethod } from "../services/order.server";
 
 const makeLoaderArgs = (url = "http://localhost/app/settings") =>
   ({ request: new Request(url), params: {}, context: {} }) as unknown as LoaderFunctionArgs;
@@ -257,6 +259,83 @@ describe("Settings action", () => {
     );
     expect(result).toEqual({ error: "PAYMENT_METHOD_REGISTRATION_FAILED" });
     expect(saveCredential).toHaveBeenCalledOnce();
+  });
+
+  it("delete: Shopify unregister succeeds → returns { deleted: true }, calls both service functions", async () => {
+    vi.mocked(authenticate.admin).mockResolvedValueOnce({
+      admin: {} as any,
+      session: {
+        ...createMockShopifySession(),
+        accessToken: "tok123",
+        shop: "test-store.myshopify.com",
+      } as any,
+    } as any);
+    vi.mocked(unregisterPaymentMethod).mockResolvedValueOnce(undefined);
+    vi.mocked(deleteCredential).mockResolvedValueOnce(undefined);
+
+    const result = await action(makeActionArgs({ intent: "delete" }));
+    expect(result).toEqual({ deleted: true });
+    expect(unregisterPaymentMethod).toHaveBeenCalledOnce();
+    expect(deleteCredential).toHaveBeenCalledOnce();
+  });
+
+  it("delete: unregisterPaymentMethod throws → returns PAYMENT_METHOD_UNREGISTRATION_FAILED, deleteCredential NOT called", async () => {
+    vi.mocked(authenticate.admin).mockResolvedValueOnce({
+      admin: {} as any,
+      session: {
+        ...createMockShopifySession(),
+        accessToken: "tok123",
+        shop: "test-store.myshopify.com",
+      } as any,
+    } as any);
+    vi.mocked(unregisterPaymentMethod).mockRejectedValueOnce(
+      new Error("Shopify API error")
+    );
+
+    const result = await action(makeActionArgs({ intent: "delete" }));
+    expect(result).toEqual({ error: "PAYMENT_METHOD_UNREGISTRATION_FAILED" });
+    expect(deleteCredential).not.toHaveBeenCalled();
+  });
+
+  it("save (update existing): valid credentials → returns { success: true }, registerPaymentMethod NOT called", async () => {
+    vi.mocked(authenticate.admin).mockResolvedValueOnce({
+      admin: {} as any,
+      session: {
+        ...createMockShopifySession(),
+        accessToken: "tok123",
+        shop: "test-store.myshopify.com",
+      } as any,
+    } as any);
+    vi.mocked(hasCredential).mockResolvedValueOnce(true);
+    vi.mocked(verifyCredentials).mockResolvedValueOnce(undefined);
+    vi.mocked(saveCredential).mockResolvedValueOnce(undefined);
+
+    const result = await action(
+      makeActionArgs({ intent: "save", clientId: "id123", secretToken: "tok" })
+    );
+    expect(result).toEqual({ success: true });
+    expect(saveCredential).toHaveBeenCalledOnce();
+    expect(registerPaymentMethod).not.toHaveBeenCalled();
+  });
+
+  it("save (update existing): verifyCredentials throws InvalidCredentialsError → returns INVALID_CREDENTIALS, saveCredential NOT called", async () => {
+    vi.mocked(authenticate.admin).mockResolvedValueOnce({
+      admin: {} as any,
+      session: {
+        ...createMockShopifySession(),
+        shop: "test-store.myshopify.com",
+      } as any,
+    } as any);
+    vi.mocked(hasCredential).mockResolvedValueOnce(true);
+    vi.mocked(verifyCredentials).mockRejectedValueOnce(
+      new InvalidCredentialsError()
+    );
+
+    const result = await action(
+      makeActionArgs({ intent: "save", clientId: "bad", secretToken: "bad" })
+    );
+    expect(result).toEqual({ error: "INVALID_CREDENTIALS" });
+    expect(saveCredential).not.toHaveBeenCalled();
   });
 
   it("enforces multi-tenancy: shop from session, not form", async () => {

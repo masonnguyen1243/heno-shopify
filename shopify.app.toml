@@ -12,19 +12,19 @@ scopes = "read_orders,write_orders,read_payment_gateways,write_payment_gateways"
 api_version = "2025-07"
 
   [[webhooks.subscriptions]]
-  uri = "/webhooks"
+  uri = "/webhooks/app/uninstalled"
   topics = [ "app/uninstalled" ]
 
   [[webhooks.subscriptions]]
-  uri = "/webhooks"
+  uri = "/webhooks/customers/data_request"
   topics = [ "customers/data_request" ]
 
   [[webhooks.subscriptions]]
-  uri = "/webhooks"
+  uri = "/webhooks/customers/redact"
   topics = [ "customers/redact" ]
 
   [[webhooks.subscriptions]]
-  uri = "/webhooks"
+  uri = "/webhooks/shop/redact"
   topics = [ "shop/redact" ]
 
 [auth]

@@ -1,4 +1,23 @@
 
+## Deferred from: code review of 1-6-app-uninstall-and-gdpr-compliance (2026-06-23)
+
+- APP_UNINSTALLED partial failure acceptable: nếu `deleteCredential` hoặc `session.deleteMany` throw sau `updateMany`, merchant được mark uninstalled nhưng credential/session còn lại — GDPR 48h window xử lý; Shopify không retry webhook này
+- unregisterPaymentMethod failure swallowed: nếu Shopify đã revoke token trước khi webhook fire, unregister sẽ throw 401 → logged + swallowed; payment gateway có thể còn hiển thị trong Shopify admin cho đến khi cleanup thủ công
+- Race condition concurrent app/uninstalled deliveries: Shopify có thể deliver duplicate — hai concurrent requests đều pass `session?.accessToken` check trước khi session bị xóa; `unregisterPaymentMethod` gọi 2 lần → lần 2 có thể 404; `deleteMany` calls idempotent nên DB OK
+- unregisterPaymentMethod không treat 404 DELETE là "already gone": order.server.ts throw khi DELETE 404 — nếu gateway đã bị xóa bởi concurrent request, lần 2 log spurious error
+- unregisterPaymentMethod không handle non-JSON response: `listRes.json()` không wrap try/catch — malformed Shopify response propagates as SyntaxError
+- Merchant row không tồn tại khi uninstall: `updateMany` silently returns count:0; không có warning log — acceptable by design
+- AC2 empty response body: Shopify data_request webhook chỉ cần 200 ACK; body không bắt buộc per Shopify docs
+
+## Deferred from: code review of 1-5-credential-update-and-deletion (2026-06-23)
+
+- session.shop vs shop inconsistency: unregisterPaymentMethod gọi session.shop, deleteCredential gọi shop — functionally equivalent nhưng lệch pattern codebase
+- CSRF không có secondary guard trên delete action: Shopify session cookie mitigate; không có idempotency key hay re-auth bổ sung
+- AbortSignal.timeout không có trên Node.js < 17.3: pattern pre-existing từ registerPaymentMethod, cần confirm Node runtime version
+- Gateway name exact-match có thể miss nếu Shopify normalize Unicode hoặc merchant đổi tên gateway trong admin: unregisterPaymentMethod skip silently → credential bị xóa nhưng gateway còn lại
+- localHasCredential không sync khi parent re-render với prop mới: useState(hasCredential) chỉ dùng prop làm initial value — pattern pre-existing
+- Error Banner tone "critical" chưa verify trực tiếp trong diff: errorMessage được pass vào Banner pre-existing, tone prop không đổi trong story này
+
 ## Deferred from: code review of 1-4-credential-validation-encryption-and-payment-method-registration (2026-06-23)
 
 - AC2 integration test (Testcontainers): Chưa viết test thực sự connect DB để assert encryptedSecretToken là ciphertext — đánh dấu optional Task 10, cần @testcontainers/postgresql setup

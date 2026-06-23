@@ -35,6 +35,13 @@ export async function saveCredential(
   console.info("Credential saved", { shop });
 }
 
+export async function deleteCredential(shop: string): Promise<void> {
+  await db.merchantCredential.deleteMany({
+    where: { merchant: { shopDomain: shop } },
+  });
+  console.info("Credential deleted", { shop });
+}
+
 export async function hasCredential(shop: string): Promise<boolean> {
   const merchant = await db.merchant.findUnique({
     where: { shopDomain: shop },

@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-06-22T03:00:00.000Z"
-last_updated: "2026-06-23T11:00:00.000Z"
+last_updated: "2026-06-23T14:35:00.000Z"
 project: Tingee-Shopify-App
 project_key: NOKEY
 tracking_system: file-system
@@ -48,8 +48,8 @@ development_status:
   1-2-shopify-oauth-app-installation: done
   1-3-admin-settings-ui-credential-form: done
   1-4-credential-validation-encryption-and-payment-method-registration: done
-  1-5-credential-update-and-deletion: backlog
-  1-6-app-uninstall-and-gdpr-compliance: backlog
+  1-5-credential-update-and-deletion: done
+  1-6-app-uninstall-and-gdpr-compliance: done
   epic-1-retrospective: optional
 
   # Epic 2: Buyer Payment Experience
