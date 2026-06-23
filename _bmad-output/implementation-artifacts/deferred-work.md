@@ -1,4 +1,12 @@
 
+## Deferred from: code review of 1-3-admin-settings-ui-credential-form (2026-06-23)
+
+- AC7 error states chưa implement trong CredentialForm — TextField chưa có `error` prop hoặc error state management; thuộc phạm vi Story 1.4 khi có save action
+- Không có `ErrorBoundary` trên `app.settings.tsx` — `boundary.headers` không pair với `boundary.error`; DB failure propagates lên parent boundary mà không có context cụ thể
+- Không có max-length validation trên Client ID / Secret Token fields — defer sang Story 1.4 khi implement save action
+- `clientId`/`secretToken` trim khi check disabled nhưng sẽ submit raw — fix khi Story 1.4 thêm action
+- Non-Response error branch trong `requireShopSession` không được test — silent redirect to /auth có thể mask real failures
+
 ## Deferred from: code review of 1-2-shopify-oauth-app-installation (2026-06-22)
 
 - Race condition khi concurrent installs cùng shop: cả hai request có thể đọc "không có row" và cùng INSERT → unique constraint violation. Cần xử lý `P2002` hoặc dùng raw upsert query

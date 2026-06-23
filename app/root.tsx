@@ -1,3 +1,4 @@
+import "@shopify/polaris/build/esm/styles.css";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
 export default function App() {
@@ -13,6 +14,13 @@ export default function App() {
         />
         <Meta />
         <Links />
+        <style>{`
+          :root {
+            --p-color-bg-fill-brand: #e12a41;
+            --p-color-bg-fill-brand-hover: #c4223a;
+            --p-color-bg-fill-brand-active: #a81b30;
+          }
+        `}</style>
       </head>
       <body>
         <Outlet />

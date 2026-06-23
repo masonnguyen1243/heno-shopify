@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-06-22T03:00:00.000Z"
-last_updated: "2026-06-22T16:04:00.000Z"
+last_updated: "2026-06-23T09:32:00.000Z"
 project: Tingee-Shopify-App
 project_key: NOKEY
 tracking_system: file-system
@@ -46,7 +46,7 @@ development_status:
   epic-1: in-progress
   1-1-app-scaffold-database-schema-and-cicd-foundation: done
   1-2-shopify-oauth-app-installation: done
-  1-3-admin-settings-ui-credential-form: backlog
+  1-3-admin-settings-ui-credential-form: done
   1-4-credential-validation-encryption-and-payment-method-registration: backlog
   1-5-credential-update-and-deletion: backlog
   1-6-app-uninstall-and-gdpr-compliance: backlog
