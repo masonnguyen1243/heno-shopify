@@ -6,7 +6,8 @@ import { env } from "../lib/env.server";
 export async function saveCredential(
   shop: string,
   clientId: string,
-  secretToken: string
+  secretToken: string,
+  account?: { accountNumber: string; bankBin: string; bankName: string }
 ): Promise<void> {
   const merchant = await db.merchant.findUnique({
     where: { shopDomain: shop },
@@ -17,19 +18,21 @@ export async function saveCredential(
   const encryptedClientId = encrypt(clientId, env.ENCRYPTION_KEY);
   const encryptedSecretToken = encrypt(secretToken, env.ENCRYPTION_KEY);
 
+  const data = {
+    encryptedClientId,
+    encryptedSecretToken,
+    keyVersion: 1,
+    ...(account && {
+      accountNumber: account.accountNumber,
+      bankBin: account.bankBin,
+      bankName: account.bankName,
+    }),
+  };
+
   await db.merchantCredential.upsert({
     where: { merchantId: merchant.id },
-    create: {
-      merchantId: merchant.id,
-      encryptedClientId,
-      encryptedSecretToken,
-      keyVersion: 1,
-    },
-    update: {
-      encryptedClientId,
-      encryptedSecretToken,
-      keyVersion: 1,
-    },
+    create: { merchantId: merchant.id, ...data },
+    update: data,
   });
 
   console.info("Credential saved", { shop });

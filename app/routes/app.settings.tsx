@@ -11,36 +11,24 @@ import db from "../db.server";
 import { CredentialForm } from "../components/CredentialForm";
 import {
   verifyCredentials,
+  fetchTingeeAccounts,
   InvalidCredentialsError,
   TingeeConnectionError,
 } from "../services/tingee.server";
-import { saveCredential, hasCredential, deleteCredential } from "../services/credential.server";
-import { registerPaymentMethod, unregisterPaymentMethod } from "../services/order.server";
+import { saveCredential, deleteCredential } from "../services/credential.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session, shop } = await requireShopSession(request);
+  const { shop } = await requireShopSession(request);
 
   const formData = await request.formData();
   const intent = String(formData.get("intent") ?? "save");
 
   if (intent === "delete") {
     try {
-      await unregisterPaymentMethod(session.shop, session.accessToken!);
-    } catch (error) {
-      console.error(
-        "Unregister payment method failed",
-        sanitizeForLog({
-          shop,
-          errorMessage: error instanceof Error ? error.message : String(error),
-        })
-      );
-      return { error: "PAYMENT_METHOD_UNREGISTRATION_FAILED" };
-    }
-    try {
       await deleteCredential(shop);
     } catch (error) {
       console.error(
-        "Delete credential failed after payment method unregistered",
+        "Delete credential failed",
         sanitizeForLog({
           shop,
           errorMessage: error instanceof Error ? error.message : String(error),
@@ -62,11 +50,35 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return { error: "MISSING_FIELDS" };
   }
 
-  const isFirstSave = !(await hasCredential(shop));
+  // Verify credentials then fetch the merchant's VA accounts from Tingee
+  if (intent === "verify") {
+    try {
+      await verifyCredentials(clientId, secretToken);
+    } catch (error) {
+      if (error instanceof InvalidCredentialsError) {
+        return { error: "INVALID_CREDENTIALS" };
+      }
+      if (error instanceof TingeeConnectionError) {
+        return { error: "TINGEE_TIMEOUT" };
+      }
+      return { error: "UNKNOWN" };
+    }
+    const accounts = await fetchTingeeAccounts(clientId, secretToken);
+    return { verified: true, accounts };
+  }
+
+  // intent === "save": save credentials + selected account
+  const accountNumber = String(formData.get("accountNumber") ?? "").trim();
+  const bankBin = String(formData.get("bankBin") ?? "").trim();
+  const bankName = String(formData.get("bankName") ?? "").trim();
+
+  if (!accountNumber || !bankBin) {
+    return { error: "MISSING_ACCOUNT" };
+  }
 
   try {
     await verifyCredentials(clientId, secretToken);
-    await saveCredential(shop, clientId, secretToken);
+    await saveCredential(shop, clientId, secretToken, { accountNumber, bankBin, bankName });
   } catch (error) {
     if (error instanceof InvalidCredentialsError) {
       return { error: "INVALID_CREDENTIALS" };
@@ -84,21 +96,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return { error: "UNKNOWN" };
   }
 
-  if (isFirstSave) {
-    try {
-      await registerPaymentMethod(session.shop, session.accessToken!);
-    } catch (error) {
-      console.error(
-        "Payment method registration failed",
-        sanitizeForLog({
-          shop,
-          errorMessage: error instanceof Error ? error.message : String(error),
-        })
-      );
-      return { error: "PAYMENT_METHOD_REGISTRATION_FAILED" };
-    }
-  }
-
   return { success: true };
 };
 
@@ -107,15 +104,33 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const merchant = await db.merchant.findUnique({
     where: { shopDomain: shop },
-    include: { credential: { select: { id: true } } },
+    include: {
+      credential: {
+        select: {
+          id: true,
+          accountNumber: true,
+          bankBin: true,
+          bankName: true,
+        },
+      },
+    },
   });
 
-  return { hasCredential: !!merchant?.credential };
+  return {
+    hasCredential: !!merchant?.credential,
+    savedAccount: merchant?.credential?.accountNumber
+      ? {
+          accountNumber: merchant.credential.accountNumber,
+          bankBin: merchant.credential.bankBin ?? "",
+          bankName: merchant.credential.bankName ?? "",
+        }
+      : null,
+  };
 };
 
 export default function Settings() {
-  const { hasCredential } = useLoaderData<typeof loader>();
-  return <CredentialForm hasCredential={hasCredential} />;
+  const { hasCredential, savedAccount } = useLoaderData<typeof loader>();
+  return <CredentialForm hasCredential={hasCredential} savedAccount={savedAccount} />;
 }
 
 export const headers: HeadersFunction = (headersArgs) => {

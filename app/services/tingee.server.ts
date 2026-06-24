@@ -19,6 +19,49 @@ export class TingeeConnectionError extends Error {
   }
 }
 
+export type TingeeBankAccount = {
+  accountNumber: string;
+  bankBin: string;
+  bankName: string;
+  accountName: string;
+};
+
+export async function fetchTingeeAccounts(
+  clientId: string,
+  secretToken: string
+): Promise<TingeeBankAccount[]> {
+  const client = new TingeeClient({
+    clientId,
+    secretKey: secretToken,
+    environment: "production",
+    timeout: env.TINGEE_SDK_TIMEOUT_MS,
+  });
+
+  try {
+    // merchantId is only needed for Master Merchant access — regular merchants omit it
+    const vaResult = await (client as any).bank.getVaPaging({
+      skipCount: 0,
+      maxResultCount: 50,
+    });
+    const vaItems = vaResult?.data?.items;
+    if (!isSuccessResponse(vaResult) || !vaItems?.length) {
+      return [];
+    }
+
+    return (vaItems as any[])
+      .filter((va) => va.accountNumber && va.bankBin)
+      .map((va) => ({
+        accountNumber: va.accountNumber as string,
+        bankBin: va.bankBin as string,
+        bankName: va.bankName ?? "",
+        accountName: va.accountName ?? "",
+      }));
+  } catch (err) {
+    console.warn("[Tingee] fetchTingeeAccounts error", err instanceof Error ? err.message : String(err));
+    return [];
+  }
+}
+
 export async function verifyCredentials(
   clientId: string,
   secretToken: string

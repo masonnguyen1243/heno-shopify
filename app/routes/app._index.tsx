@@ -1,11 +1,11 @@
 import { redirect } from "react-router";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-  return redirect("/app/settings");
+export const loader = ({ request }: LoaderFunctionArgs) => {
+  // Preserve shop/host/embedded/id_token params so downstream routes can authenticate
+  const { searchParams } = new URL(request.url);
+  return redirect(`/app/settings?${searchParams.toString()}`);
 };
 
 export const headers: HeadersFunction = (headersArgs) => {

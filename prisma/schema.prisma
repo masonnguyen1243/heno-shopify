@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // Session model - required by @shopify/shopify-app-session-storage-prisma
@@ -45,6 +46,9 @@ model MerchantCredential {
   merchantId           String   @unique @map("merchant_id")
   encryptedClientId    String   @map("encrypted_client_id")
   encryptedSecretToken String   @map("encrypted_secret_token")
+  accountNumber        String?  @map("account_number")
+  bankBin              String?  @map("bank_bin")
+  bankName             String?  @map("bank_name")
   keyVersion           Int      @default(1) @map("key_version")
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")

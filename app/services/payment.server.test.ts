@@ -138,12 +138,12 @@ describe("createPaymentData", () => {
     expect(generateQR).not.toHaveBeenCalled();
   });
 
-  it("throws TingeeConnectionError when credential not found", async () => {
+  it("throws Error when credential not found", async () => {
     vi.mocked(db.payment.findFirst).mockResolvedValue(null);
     vi.mocked(getDecryptedCredential).mockResolvedValue(null);
 
-    await expect(createPaymentData(mockParams)).rejects.toBeInstanceOf(
-      TingeeConnectionError
+    await expect(createPaymentData(mockParams)).rejects.toThrow(
+      /no Tingee credentials configured/
     );
   });
 

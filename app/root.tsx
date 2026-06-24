@@ -1,5 +1,17 @@
 import "@shopify/polaris/build/esm/styles.css";
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
+import { data, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { addDocumentResponseHeaders } from "./shopify.server";
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const headers = new Headers();
+  addDocumentResponseHeaders(request, headers);
+  return data(null, { headers });
+};
+
+export const headers: HeadersFunction = ({ loaderHeaders }) => {
+  return loaderHeaders;
+};
 
 export default function App() {
   return (

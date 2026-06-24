@@ -8,7 +8,8 @@ import styles from "./styles.module.css";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
 
-  if (url.searchParams.get("shop")) {
+  // Both shop + host are required for the embedded auth flow
+  if (url.searchParams.get("shop") && url.searchParams.get("host")) {
     throw redirect(`/app?${url.searchParams.toString()}`);
   }
 

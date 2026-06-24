@@ -81,7 +81,8 @@
               "combine": "AND",
               "matchers": [
                 {
-                  "match": "type"
+                  "match": "regex",
+                  "regex": "PENDING|PROCESSING|SUCCESS|FAILED|EXPIRED"
                 }
               ]
             }
@@ -170,7 +171,8 @@
               "combine": "AND",
               "matchers": [
                 {
-                  "match": "type"
+                  "match": "regex",
+                  "regex": "PENDING|PROCESSING|SUCCESS|FAILED|EXPIRED"
                 }
               ]
             }

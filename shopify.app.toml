@@ -6,7 +6,7 @@ application_url = "https://example.com"
 embedded = true
 
 [access_scopes]
-scopes = "read_orders,write_orders,read_payment_gateways,write_payment_gateways"
+scopes = "read_orders,write_orders"
 
 [webhooks]
 api_version = "2025-07"
@@ -15,17 +15,6 @@ api_version = "2025-07"
   uri = "/webhooks/app/uninstalled"
   topics = [ "app/uninstalled" ]
 
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/customers/data_request"
-  topics = [ "customers/data_request" ]
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/customers/redact"
-  topics = [ "customers/redact" ]
-
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/shop/redact"
-  topics = [ "shop/redact" ]
 
 [auth]
 redirect_urls = [ "https://example.com/api/auth" ]

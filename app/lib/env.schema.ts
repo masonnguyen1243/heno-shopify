@@ -11,7 +11,7 @@ export const envSchema = z.object({
       "must be a 64-character hex string (generate with: openssl rand -hex 32)"
     ),
   TINGEE_SDK_TIMEOUT_MS: z.coerce.number().default(4000),
-  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_DSN: z.preprocess(v => (v === "" ? undefined : v), z.string().url().optional()),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),

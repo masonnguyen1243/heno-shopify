@@ -3,6 +3,7 @@ api_version = "2025-07"
 [[extensions]]
 name = "Order Status UI"
 handle = "order-status-ui"
+uid = "5f3addd2-b7bb-fcb3-3e33-99de18c8963aa2de8253"
 type = "ui_extension"
 
   [[extensions.targeting]]

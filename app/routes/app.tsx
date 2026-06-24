@@ -2,12 +2,32 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Outlet, redirect, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
+import { AppProvider as PolarisProvider } from "@shopify/polaris";
+// @ts-ignore — Polaris locale JSON has no .d.ts; Vite handles JSON imports natively
+import enTranslations from "@shopify/polaris/locales/en.json";
 
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  // eslint-disable-next-line no-undef
+  console.log("[DEBUG] SHOPIFY_APP_URL =", process.env.SHOPIFY_APP_URL);
+  let session;
+  try {
+    ({ session } = await authenticate.admin(request));
+  } catch (error) {
+    if (error instanceof Response && error.status === 401) {
+      const reauthUrl = error.headers.get(
+        "X-Shopify-API-Request-Failure-Reauthorize-Url"
+      );
+      if (reauthUrl) {
+        throw redirect(
+          `/auth/exit-iframe?${new URLSearchParams({ exitIframe: reauthUrl })}`
+        );
+      }
+    }
+    throw error;
+  }
 
   if (!session?.shop) throw redirect("/auth");
 
@@ -26,10 +46,12 @@ export default function App() {
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      <s-app-nav>
-        <s-link href="/app">Home</s-link>
-      </s-app-nav>
-      <Outlet />
+      <PolarisProvider i18n={enTranslations}>
+        <s-app-nav>
+          <s-link href="/app">Home</s-link>
+        </s-app-nav>
+        <Outlet />
+      </PolarisProvider>
     </AppProvider>
   );
 }
