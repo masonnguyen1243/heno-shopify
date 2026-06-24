@@ -1,5 +1,5 @@
 import db from "../db.server";
-import { encrypt } from "../lib/encryption.server";
+import { encrypt, decrypt } from "../lib/encryption.server";
 import { sanitizeForLog } from "../lib/logger.server";
 import { env } from "../lib/env.server";
 
@@ -40,6 +40,23 @@ export async function deleteCredential(shop: string): Promise<void> {
     where: { merchant: { shopDomain: shop } },
   });
   console.info("Credential deleted", { shop });
+}
+
+export async function getDecryptedCredential(
+  shop: string
+): Promise<{ clientId: string; secretToken: string } | null> {
+  const merchant = await db.merchant.findUnique({
+    where: { shopDomain: shop },
+    include: { credential: true },
+  });
+  if (!merchant?.credential) return null;
+  try {
+    const clientId = decrypt(merchant.credential.encryptedClientId, env.ENCRYPTION_KEY);
+    const secretToken = decrypt(merchant.credential.encryptedSecretToken, env.ENCRYPTION_KEY);
+    return { clientId, secretToken };
+  } catch {
+    return null;
+  }
 }
 
 export async function hasCredential(shop: string): Promise<boolean> {

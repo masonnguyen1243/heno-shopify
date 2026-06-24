@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-06-22T03:00:00.000Z"
-last_updated: "2026-06-23T14:35:00.000Z"
+last_updated: "2026-06-24T16:00:00.000Z"
 project: Tingee-Shopify-App
 project_key: NOKEY
 tracking_system: file-system
@@ -53,8 +53,8 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Buyer Payment Experience
-  epic-2: backlog
-  2-1-tingee-service-interface-and-payment-data-api: backlog
+  epic-2: in-progress
+  2-1-tingee-service-interface-and-payment-data-api: done
   2-2-payment-status-polling-endpoint: backlog
   2-3-order-status-extension-foundation-and-loading-state: backlog
   2-4-qr-display-deeplink-button-and-mobile-detection: backlog

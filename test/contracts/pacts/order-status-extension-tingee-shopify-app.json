@@ -1,0 +1,208 @@
+{
+  "consumer": {
+    "name": "order-status-extension"
+  },
+  "interactions": [
+    {
+      "description": "a request for payment data",
+      "providerStates": [
+        {
+          "name": "order 123 with payment method Thanh toán qua Tingee QR exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/orders/gid%3A%2F%2Fshopify%2FOrder%2F123/tingee-data",
+        "query": {
+          "amount": [
+            "150000"
+          ],
+          "orderNumber": [
+            "1001"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "amount": 150000,
+          "currency": "VND",
+          "deeplinkUrl": "tingee://pay?qr=abc",
+          "expiresAt": "2026-06-24T10:00:00.000Z",
+          "orderId": "gid://shopify/Order/123",
+          "qrImageUrl": "data:image/png;base64,abc123",
+          "status": "PENDING"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.amount": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.deeplinkUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.expiresAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.orderId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.qrImageUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          },
+          "header": {
+            "Content-Type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a request for payment data when deeplink is unavailable",
+      "providerStates": [
+        {
+          "name": "order 456 exists but deeplink service is unavailable"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/orders/gid%3A%2F%2Fshopify%2FOrder%2F456/tingee-data",
+        "query": {
+          "amount": [
+            "75000"
+          ],
+          "orderNumber": [
+            "1002"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "amount": 75000,
+          "currency": "VND",
+          "deeplinkUrl": null,
+          "expiresAt": "2026-06-24T10:00:00.000Z",
+          "orderId": "gid://shopify/Order/456",
+          "qrImageUrl": "data:image/png;base64,abc123",
+          "status": "PENDING"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.amount": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.expiresAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.orderId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.qrImageUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          },
+          "header": {
+            "Content-Type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "16.5.0"
+    },
+    "pactRust": {
+      "ffi": "0.5.4",
+      "models": "1.3.11"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "tingee-shopify-app"
+  }
+}

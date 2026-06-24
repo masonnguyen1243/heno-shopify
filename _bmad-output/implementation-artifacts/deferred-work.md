@@ -1,4 +1,14 @@
 
+## Deferred from: code review of 2-1-tingee-service-interface-and-payment-data-api (2026-06-24)
+
+- Ba `TingeeClient` instances per request: `getMerchantAccountInfo`, `generateQR`, `generateDeeplink` mỗi hàm tạo TingeeClient riêng — optimization để refactor sang shared client, không phải bug
+- `(client as any)` casts: SDK chưa export typed method signatures cho `bank.generateVietQr`, `deepLink.generate`, `merchant.getPaging`, `bank.getVaPaging` — deferred cho khi SDK nâng cấp types
+- VA pagination giới hạn 10 records: `maxResultCount: 10` không có stable ordering, active VA có thể nằm ngoài page đầu — cần investigate Tingee API pagination contract
+- `TINGEE_SDK_TIMEOUT_MS` type coercion: env var có thể là string nếu `env.server.ts` không parse sang number — fix trong env.server.ts scope
+- `merchantId` assumed number type: `const merchantId: number = merchantResult.data.items[0].id` — nếu Tingee API trả string thì TypeScript cast không coerce, cần `Number(...)` — deferred khi có API spec
+- `content` field duplication: `generateQR` tự build `` `TINGEE ${params.orderNumber}` ``, caller cũng build để pass vào `generateDeeplink` — cosmetic, không ảnh hưởng correctness
+- AC1 `verifyWebhookHMAC` stub intact: cần verify manually trong full `tingee.server.ts` file (ngoài diff scope) rằng stub không bị xóa hay restructure
+
 ## Deferred from: code review of 1-6-app-uninstall-and-gdpr-compliance (2026-06-23)
 
 - APP_UNINSTALLED partial failure acceptable: nếu `deleteCredential` hoặc `session.deleteMany` throw sau `updateMany`, merchant được mark uninstalled nhưng credential/session còn lại — GDPR 48h window xử lý; Shopify không retry webhook này
