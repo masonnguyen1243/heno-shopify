@@ -4,6 +4,160 @@
   },
   "interactions": [
     {
+      "description": "a polling request for completed payment status",
+      "providerStates": [
+        {
+          "name": "order 123 payment is COMPLETED"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/orders/gid%3A%2F%2Fshopify%2FOrder%2F123/payment-status"
+      },
+      "response": {
+        "body": {
+          "paidAt": "2026-06-24T10:00:00.000Z",
+          "status": "COMPLETED"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.paidAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          },
+          "header": {
+            "Content-Type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a polling request for expired payment status",
+      "providerStates": [
+        {
+          "name": "order 123 payment is EXPIRED"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/orders/gid%3A%2F%2Fshopify%2FOrder%2F123/payment-status"
+      },
+      "response": {
+        "body": {
+          "status": "EXPIRED"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "header": {
+            "Content-Type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a polling request for failed payment status",
+      "providerStates": [
+        {
+          "name": "order 123 payment has FAILED"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/orders/gid%3A%2F%2Fshopify%2FOrder%2F123/payment-status"
+      },
+      "response": {
+        "body": {
+          "status": "FAILED"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "header": {
+            "Content-Type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a polling request for payment status",
+      "providerStates": [
+        {
+          "name": "order 123 payment is PENDING and not expired"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/orders/gid%3A%2F%2Fshopify%2FOrder%2F123/payment-status"
+      },
+      "response": {
+        "body": {
+          "status": "PENDING"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "(PENDING|COMPLETED|FAILED|EXPIRED)"
+                }
+              ]
+            }
+          },
+          "header": {
+            "Content-Type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
       "description": "a request for payment data",
       "providerStates": [
         {

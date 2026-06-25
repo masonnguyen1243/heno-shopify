@@ -1,4 +1,24 @@
 
+## Deferred from: code review of 2-3-order-status-extension-foundation-and-loading-state (2026-06-25)
+
+- No polling — `POLL_INTERVAL_MS` constant defined but never used; payment status never updates after initial fetch. Story 2.5 (real-time polling) sẽ implement setInterval + clearInterval pattern
+- QR expiry không enforce client-side — `expiresAt` field received but never checked; expired QR displayed without feedback. Story 2.5-2.6 (countdown timer, expiry state)
+- No fetch timeout / retry — `fetchTingeeData` hangs indefinitely on slow/offline network; skeleton renders forever. Story 2.5 (offline resilience) sẽ xử lý với AbortController + backoff
+- DEEPLINK constants (`DEEPLINK_TIMEOUT_IOS_MS`, `DEEPLINK_TIMEOUT_ANDROID_MS`) unused — defined in constants.ts but no deeplink logic yet. Story 2.4 sẽ implement deeplink button + mobile detection
+- `tWithArgs` exported but unused — `qrAltText` function key exists in i18n.ts but PaymentCard.tsx uses hardcoded template instead. Story 2.4/2.5 sẽ dùng đúng
+- `parseFloat` NaN nếu `order.totalPrice.amount` không phải numeric string — Shopify API đảm bảo numeric string; edge case lý thuyết không xảy ra trong practice
+- `amount=0` gọi Tingee API với zero amount — Tingee API behavior cho zero amount không xác định; separate concern ngoài scope
+- `qrImageUrl` null/absent trong PENDING state ẩn QR section không có giải thích cho user — edge case khi backend trả partial response; ngoài scope story 2.3
+
+## Deferred from: code review of 2-2-payment-status-polling-endpoint (2026-06-25)
+
+- In-memory rate limiter resets on server restart — by design for single-instance pilot; revisit when scaling beyond single instance
+- `dest.replace("https://", "")` fragile (no `.myshopify.com` validation, no URL parsing) — inherited from Story 2.1, systemic; fix when hardening auth boundary
+- `paidAt` sourced from `updatedAt` can shift if Payment row is updated after SUCCESS — schema frozen in Story 1.1; revisit with a dedicated `succeededAt` column migration
+- No `Cache-Control` or `Retry-After` hints on 200 polling responses — belongs to Story 2.5 (real-time polling & offline resilience)
+- `expiresAt < new Date()` uses non-injectable wall clock — minor test robustness concern, not a production bug; low priority
+- `authenticate.public.checkout` throws not caught — Shopify SDK handles auth errors; consistent with established codebase pattern
+
 ## Deferred from: code review of 2-1-tingee-service-interface-and-payment-data-api (2026-06-24)
 
 - Ba `TingeeClient` instances per request: `getMerchantAccountInfo`, `generateQR`, `generateDeeplink` mỗi hàm tạo TingeeClient riêng — optimization để refactor sang shared client, không phải bug
