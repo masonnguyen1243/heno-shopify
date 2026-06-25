@@ -1,7 +1,7 @@
 import {
   reactExtension,
   useOrder,
-  useLocalization,
+  useLanguage,
 } from "@shopify/ui-extensions-react/customer-account";
 import { PaymentCard } from "./components/PaymentCard";
 
@@ -12,7 +12,7 @@ export default reactExtension(
 
 function TingeePaymentBlock() {
   const order = useOrder();
-  const { locale } = useLocalization();
+  const language = useLanguage();
 
   if (!order) return null;
 
@@ -31,7 +31,7 @@ function TingeePaymentBlock() {
       orderId={orderId}
       amount={amount}
       orderNumber={orderNumber}
-      locale={locale?.isoCode ?? "en"}
+      locale={language?.isoCode ?? "en"}
       financialStatus={order.financialStatus}
     />
   );

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useColorScheme } from "@shopify/ui-extensions-react/customer-account";
 import { fetchTingeeData } from "../api/client";
 import type { TingeeDataResponse } from "../api/client";
 import { formatVndAmount } from "../utils/formatters";
@@ -19,9 +18,6 @@ type LoadState = "loading" | "loaded" | "error";
 export function PaymentCard({ orderId, amount, orderNumber, locale, financialStatus }: Props) {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [data, setData] = useState<TingeeDataResponse | null>(null);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-
   useEffect(() => {
     const controller = new AbortController();
     fetchTingeeData(orderId, amount, orderNumber)
@@ -39,7 +35,7 @@ export function PaymentCard({ orderId, amount, orderNumber, locale, financialSta
     return () => controller.abort();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const containerClass = `tng-payment-container${isDark ? " tng-payment-container--dark" : ""}`;
+  const containerClass = "tng-payment-container";
 
   if (loadState === "loading") {
     // AC5: bypass skeleton if order is already paid per financialStatus from useOrder()
