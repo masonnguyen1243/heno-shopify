@@ -10,6 +10,7 @@ const translations = {
     backToStore: "Quay lại cửa hàng",
     qrAltText: (amount: string) => `Mã QR thanh toán ${amount} đồng qua Tingee`,
     checkingConnection: "Đang kiểm tra kết nối...",
+    paidConfirmMessage: "Đơn hàng của bạn đã được xác nhận. Cảm ơn!",
   },
   en: {
     loading: "Loading...",
@@ -22,6 +23,7 @@ const translations = {
     backToStore: "Back to store",
     qrAltText: (amount: string) => `QR code to pay ${amount} đ via Tingee`,
     checkingConnection: "Checking connection...",
+    paidConfirmMessage: "Your order has been confirmed. Thank you!",
   },
 };
 

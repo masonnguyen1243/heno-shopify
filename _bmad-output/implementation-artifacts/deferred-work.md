@@ -1,4 +1,18 @@
 
+## Deferred from: code review of 2-5-real-time-polling-status-updates-and-offline-resilience (2026-06-26)
+
+- No maximum retry count or wall-clock timeout for permanently PENDING orders — polling backs off to 30s but never stops; `EXPIRED_TIMEOUT_MS` constant exists in constants.ts but unused by hook
+- `readCache` called twice during hook init (duplicate sessionStorage read + JSON.parse for `status` and `paidAt` state initializers)
+- `writeCache` silently swallows all errors — sessionStorage quota or block failures are unobservable
+- Backoff test timing assertions hardcode interval values instead of importing `POLL_INTERVAL_MS`/`BACKOFF_STEPS` constants — test semantics break silently if constants change
+- `aria-live="polite"` applied to all `StatusBadge` instances including static terminal-state badges — screen readers announce static content unnecessarily on mount; scope Story 2.6
+- URL encoding inconsistency — `fetchPaymentStatus` uses `encodeURIComponent(orderId)` but prior `fetchTingeeData` URL construction not in diff; investigate if orderId can contain special chars
+- Shopify `gid://shopify/Order/...` orderId format written raw to sessionStorage key `tng_payment_{orderId}` — potential key collision if callers encode/decode orderId differently
+- `financialStatus === "PAID"` bypass in PaymentCard may flicker — shows COMPLETED badge during loading then switches to PENDING/QR if Tingee disagrees; pre-existing behavior from Story 2.4
+- `consecutiveFailuresRef` not reset on visibility hide/show cycle — toast threshold fires sooner after tab restore if failures were already accumulating before hide
+- `fetchPaymentStatus` calls `response.json()` on 2xx without guarding empty body — proxy edge case could produce SyntaxError and trigger backoff path; backend spec guarantees JSON
+- `SESSION_CACHE_TTL_MS = 30s` may be too short — completed payment status re-fetched from server after 30s; consider using Infinity TTL for terminal states
+
 ## Deferred from: code review of 2-4-qr-display-deeplink-button-and-mobile-detection (2026-06-26)
 
 - `useMobileDetect` không subscribe `resize`/`orientationchange` — isMobile value không cập nhật khi user xoay màn hình; cần thêm event listener + cleanup trong useEffect

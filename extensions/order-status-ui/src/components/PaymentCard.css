@@ -89,6 +89,34 @@
   color: #b45309;
 }
 
+[data-tng-extension] .tng-status-badge-container {
+  /* aria-live wrapper — no visual styles */
+}
+
+[data-tng-extension] .tng-status-badge--pending {
+  background: #fef3c7;
+  color: #f59e0b;
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+[data-tng-extension] .tng-paid-message {
+  color: #008060;
+  font-size: 14px;
+  margin-top: 8px;
+  text-align: center;
+}
+
+[data-tng-extension] .tng-connection-toast {
+  color: #6b6b6b;
+  font-size: 12px;
+  margin-top: 8px;
+  text-align: center;
+}
+
 /* Touch targets — minimum 44×44px per AC6 */
 [data-tng-extension] button,
 [data-tng-extension] a {

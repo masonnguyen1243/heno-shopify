@@ -5,8 +5,10 @@ import type { TingeeDataResponse } from "../api/client";
 import { formatVndAmount } from "../utils/formatters";
 import { t } from "../utils/i18n";
 import { useMobileDetect } from "../hooks/useMobileDetect";
+import { usePaymentStatus } from "../hooks/usePaymentStatus";
 import { QRDisplay } from "./QRDisplay";
 import { DeeplinkButton } from "./DeeplinkButton";
+import { StatusBadge } from "./StatusBadge";
 import "./PaymentCard.css";
 
 type Props = {
@@ -25,6 +27,13 @@ export function PaymentCard({ orderId, amount, orderNumber, locale, financialSta
   const isMobile = useMobileDetect();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+
+  // Must call hooks before conditional returns (React rules of hooks)
+  const { status: polledStatus, paidAt, showConnectionToast } = usePaymentStatus(
+    orderId,
+    loadState === "loaded" ? (data?.status ?? null) : null
+  );
+
   useEffect(() => {
     const controller = new AbortController();
     fetchTingeeData(orderId, amount, orderNumber)
@@ -44,15 +53,16 @@ export function PaymentCard({ orderId, amount, orderNumber, locale, financialSta
 
   const containerClass = `tng-payment-container${isDark ? " tng-payment-container--dark" : ""}`;
 
+  // polledStatus available immediately from sessionStorage cache (AC8), even before fetchTingeeData completes
+  const effectiveStatus = polledStatus ?? (loadState === "loaded" ? (data?.status ?? null) : null);
+
   if (loadState === "loading") {
-    // AC5: bypass skeleton if order is already paid per financialStatus from useOrder()
+    // Bypass skeleton if order is already paid per financialStatus from useOrder()
     if (financialStatus === "PAID") {
       return (
         <div data-tng-extension className={containerClass}>
           <div className="tng-payment-card">
-            <span className="tng-status-badge tng-status-badge--paid">
-              {t("paid", locale)}
-            </span>
+            <StatusBadge status="COMPLETED" locale={locale} />
           </div>
         </div>
       );
@@ -77,19 +87,18 @@ export function PaymentCard({ orderId, amount, orderNumber, locale, financialSta
     );
   }
 
-  if (data?.status === "COMPLETED") {
+  if (effectiveStatus === "COMPLETED") {
     return (
       <div data-tng-extension className={containerClass}>
         <div className="tng-payment-card">
-          <span className="tng-status-badge tng-status-badge--paid">
-            {t("paid", locale)}
-          </span>
+          <StatusBadge status="COMPLETED" locale={locale} />
+          <p className="tng-paid-message">{t("paidConfirmMessage", locale)}</p>
         </div>
       </div>
     );
   }
 
-  if (data?.status === "EXPIRED") {
+  if (effectiveStatus === "EXPIRED") {
     return (
       <div data-tng-extension className={containerClass}>
         <div className="tng-payment-card">
@@ -102,7 +111,7 @@ export function PaymentCard({ orderId, amount, orderNumber, locale, financialSta
     );
   }
 
-  if (data?.status === "FAILED") {
+  if (effectiveStatus === "FAILED") {
     return (
       <div data-tng-extension className={containerClass}>
         <div className="tng-payment-card">
@@ -112,6 +121,7 @@ export function PaymentCard({ orderId, amount, orderNumber, locale, financialSta
     );
   }
 
+  // PENDING (or null while polling hasn't resolved yet)
   return (
     <div data-tng-extension className={containerClass}>
       <div className="tng-payment-card">
@@ -129,7 +139,10 @@ export function PaymentCard({ orderId, amount, orderNumber, locale, financialSta
           isMobile={isMobile}
         />
         <p className="tng-amount">{formatVndAmount(amount)}</p>
-        <p>{t("pending", locale)}</p>
+        <StatusBadge status="PENDING" locale={locale} />
+        {showConnectionToast && (
+          <p className="tng-connection-toast">{t("checkingConnection", locale)}</p>
+        )}
       </div>
     </div>
   );

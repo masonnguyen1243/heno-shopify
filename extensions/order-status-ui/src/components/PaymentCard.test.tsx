@@ -5,6 +5,7 @@ import type { TingeeDataResponse } from "../api/client";
 
 vi.mock("../api/client", () => ({
   fetchTingeeData: vi.fn(),
+  fetchPaymentStatus: vi.fn(),
 }));
 
 vi.mock("@shopify/ui-extensions-react/customer-account", () => ({
@@ -15,7 +16,18 @@ vi.mock("../hooks/useMobileDetect", () => ({
   useMobileDetect: vi.fn(() => false),
 }));
 
+vi.mock("../hooks/usePaymentStatus", () => ({
+  usePaymentStatus: vi.fn(() => ({ status: null, paidAt: undefined, showConnectionToast: false })),
+}));
+
+vi.mock("./StatusBadge", () => ({
+  StatusBadge: ({ status }: { status: string }) => (
+    <span data-testid="status-badge">{status}</span>
+  ),
+}));
+
 import { fetchTingeeData } from "../api/client";
+import { usePaymentStatus } from "../hooks/usePaymentStatus";
 import { PaymentCard } from "./PaymentCard";
 
 const pendingData: TingeeDataResponse = {
@@ -68,11 +80,30 @@ describe("PaymentCard", () => {
 
   it("renders success state directly when status is COMPLETED (no flash)", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(completedData);
+    vi.mocked(usePaymentStatus).mockReturnValue({ status: "COMPLETED", paidAt: undefined, showConnectionToast: false });
     render(<PaymentCard {...defaultProps} locale="vi" />);
     await waitFor(() => {
-      expect(screen.getByText("Đã thanh toán ✓")).toBeTruthy();
+      expect(screen.getByText("COMPLETED")).toBeTruthy(); // StatusBadge mock
     });
     expect(screen.queryByText("Chờ thanh toán")).toBeNull();
+  });
+
+  it("shows paidConfirmMessage when polled status is COMPLETED", async () => {
+    vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
+    vi.mocked(usePaymentStatus).mockReturnValue({ status: "COMPLETED", paidAt: undefined, showConnectionToast: false });
+    render(<PaymentCard {...defaultProps} locale="vi" />);
+    await waitFor(() => {
+      expect(screen.getByText("Đơn hàng của bạn đã được xác nhận. Cảm ơn!")).toBeTruthy();
+    });
+  });
+
+  it("shows connection toast when showConnectionToast is true", async () => {
+    vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
+    vi.mocked(usePaymentStatus).mockReturnValue({ status: "PENDING", paidAt: undefined, showConnectionToast: true });
+    render(<PaymentCard {...defaultProps} locale="vi" />);
+    await waitFor(() => {
+      expect(screen.getByText("Đang kiểm tra kết nối...")).toBeTruthy();
+    });
   });
 
   it("renders Vietnamese text when locale is 'vi'", async () => {
@@ -80,7 +111,7 @@ describe("PaymentCard", () => {
     render(<PaymentCard {...defaultProps} locale="vi" />);
     await waitFor(() => {
       expect(screen.getByText("Thanh toán qua Tingee QR")).toBeTruthy();
-      expect(screen.getByText("Chờ thanh toán")).toBeTruthy();
+      expect(screen.getByText("PENDING")).toBeTruthy(); // StatusBadge mock renders status text
     });
   });
 
@@ -89,7 +120,6 @@ describe("PaymentCard", () => {
     render(<PaymentCard {...defaultProps} locale="en" />);
     await waitFor(() => {
       expect(screen.getByText("Pay with Tingee QR")).toBeTruthy();
-      expect(screen.getByText("Awaiting payment")).toBeTruthy();
     });
   });
 

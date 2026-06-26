@@ -1,5 +1,10 @@
 import type { PaymentStatus } from "../utils/constants";
 
+export type PaymentStatusResponse = {
+  status: PaymentStatus;
+  paidAt?: string;
+};
+
 export type TingeeDataResponse = {
   qrImageUrl: string;
   deeplinkUrl: string | null;
@@ -34,4 +39,27 @@ export async function fetchTingeeData(
   }
 
   return response.json() as Promise<TingeeDataResponse>;
+}
+
+export async function fetchPaymentStatus(
+  orderId: string,
+  signal?: AbortSignal
+): Promise<PaymentStatusResponse> {
+  const url = `/api/orders/${encodeURIComponent(orderId)}/payment-status`;
+  const response = await fetch(url, { signal });
+
+  if (!response.ok) {
+    const err = (await response
+      .json()
+      .catch(() => ({ error: `HTTP ${response.status}`, code: "REQUEST_FAILED" }))) as {
+      error?: string;
+      code?: string;
+    };
+    throw Object.assign(
+      new Error(err.error ?? `HTTP ${response.status}`),
+      { code: err.code ?? "REQUEST_FAILED", status: response.status }
+    );
+  }
+
+  return response.json() as Promise<PaymentStatusResponse>;
 }
