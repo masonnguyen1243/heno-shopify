@@ -11,6 +11,10 @@ vi.mock("@shopify/ui-extensions-react/customer-account", () => ({
   useColorScheme: vi.fn(() => "light"),
 }));
 
+vi.mock("../hooks/useMobileDetect", () => ({
+  useMobileDetect: vi.fn(() => false),
+}));
+
 import { fetchTingeeData } from "../api/client";
 import { PaymentCard } from "./PaymentCard";
 

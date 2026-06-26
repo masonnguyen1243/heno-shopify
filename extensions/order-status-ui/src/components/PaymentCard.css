@@ -103,3 +103,59 @@
   color: #666;
   padding: 8px 0;
 }
+
+/* Deeplink button */
+[data-tng-extension] .tng-deeplink-btn {
+  background: #e12a41;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+[data-tng-extension] .tng-deeplink-btn:hover {
+  background: #c4223a;
+}
+
+[data-tng-extension] .tng-deeplink-btn:active {
+  background: #a81b30;
+}
+
+/* QR tap trigger (mobile zoom affordance) */
+[data-tng-extension] .tng-qr-tap-trigger {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: block;
+}
+
+/* Lightbox */
+[data-tng-extension] .tng-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+[data-tng-extension] .tng-lightbox__qr-container {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+[data-tng-extension] .tng-lightbox__qr-container img {
+  width: min(90vw, 400px) !important;
+  height: min(90vw, 400px) !important;
+  max-width: none !important;
+}

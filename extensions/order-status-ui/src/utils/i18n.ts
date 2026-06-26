@@ -8,7 +8,7 @@ const translations = {
     expired: "Mã QR đã hết hạn",
     expiredMessage: "Mã QR đã hết hạn sau 15 phút.",
     backToStore: "Quay lại cửa hàng",
-    qrAltText: (amount: string) => `Mã QR thanh toán ${amount} qua Tingee`,
+    qrAltText: (amount: string) => `Mã QR thanh toán ${amount} đồng qua Tingee`,
     checkingConnection: "Đang kiểm tra kết nối...",
   },
   en: {
@@ -20,7 +20,7 @@ const translations = {
     expired: "QR code expired",
     expiredMessage: "QR code expired after 15 minutes.",
     backToStore: "Back to store",
-    qrAltText: (amount: string) => `QR code to pay ${amount} via Tingee`,
+    qrAltText: (amount: string) => `QR code to pay ${amount} đ via Tingee`,
     checkingConnection: "Checking connection...",
   },
 };

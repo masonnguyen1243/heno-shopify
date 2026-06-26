@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
+import { useColorScheme } from "@shopify/ui-extensions-react/customer-account";
 import { fetchTingeeData } from "../api/client";
 import type { TingeeDataResponse } from "../api/client";
 import { formatVndAmount } from "../utils/formatters";
-import { t, tWithArgs } from "../utils/i18n";
+import { t } from "../utils/i18n";
+import { useMobileDetect } from "../hooks/useMobileDetect";
+import { QRDisplay } from "./QRDisplay";
+import { DeeplinkButton } from "./DeeplinkButton";
 import "./PaymentCard.css";
 
 type Props = {
@@ -18,6 +22,9 @@ type LoadState = "loading" | "loaded" | "error";
 export function PaymentCard({ orderId, amount, orderNumber, locale, financialStatus }: Props) {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [data, setData] = useState<TingeeDataResponse | null>(null);
+  const isMobile = useMobileDetect();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   useEffect(() => {
     const controller = new AbortController();
     fetchTingeeData(orderId, amount, orderNumber)
@@ -35,7 +42,7 @@ export function PaymentCard({ orderId, amount, orderNumber, locale, financialSta
     return () => controller.abort();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const containerClass = "tng-payment-container";
+  const containerClass = `tng-payment-container${isDark ? " tng-payment-container--dark" : ""}`;
 
   if (loadState === "loading") {
     // AC5: bypass skeleton if order is already paid per financialStatus from useOrder()
@@ -109,16 +116,18 @@ export function PaymentCard({ orderId, amount, orderNumber, locale, financialSta
     <div data-tng-extension className={containerClass}>
       <div className="tng-payment-card">
         <p>{t("payWith", locale)}</p>
-        {data?.qrImageUrl && (
-          <div className="tng-qr-container">
-            <img
-              src={data.qrImageUrl}
-              alt={tWithArgs("qrAltText", locale, formatVndAmount(amount))}
-              width={200}
-              height={200}
-            />
-          </div>
-        )}
+        <DeeplinkButton
+          deeplinkUrl={data?.deeplinkUrl ?? null}
+          amount={amount}
+          locale={locale}
+          isMobile={isMobile}
+        />
+        <QRDisplay
+          qrImageUrl={data?.qrImageUrl}
+          amount={amount}
+          locale={locale}
+          isMobile={isMobile}
+        />
         <p className="tng-amount">{formatVndAmount(amount)}</p>
         <p>{t("pending", locale)}</p>
       </div>

@@ -1,4 +1,9 @@
 
+## Deferred from: code review of 2-4-qr-display-deeplink-button-and-mobile-detection (2026-06-26)
+
+- `useMobileDetect` không subscribe `resize`/`orientationchange` — isMobile value không cập nhật khi user xoay màn hình; cần thêm event listener + cleanup trong useEffect
+- `window.location.href` deeplink trong iframe embedded context — custom-scheme URL assignment có thể bị block trong một số browser/WebView khi chạy trong iframe; fallback timer sẽ kích hoạt nhưng initial deeplink navigation có thể fail silently; cần test thực tế trong Shopify customer-account extension iframe
+
 ## Deferred from: code review of 2-3-order-status-extension-foundation-and-loading-state (2026-06-25)
 
 - No polling — `POLL_INTERVAL_MS` constant defined but never used; payment status never updates after initial fetch. Story 2.5 (real-time polling) sẽ implement setInterval + clearInterval pattern
