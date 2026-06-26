@@ -17,10 +17,12 @@
   display: block !important;
 }
 
-/* Dark mode — overrides reset layer (after reset rules to win cascade) */
-[data-tng-extension].tng-payment-container--dark {
-  background: #1a1a1a !important;
-  color: #f0f0f0 !important;
+/* Dark mode — detected via CSS media query */
+@media (prefers-color-scheme: dark) {
+  [data-tng-extension].tng-payment-container {
+    background: #1a1a1a !important;
+    color: #f0f0f0 !important;
+  }
 }
 
 /* Payment card */
@@ -32,9 +34,11 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-[data-tng-extension].tng-payment-container--dark .tng-payment-card {
-  background: #1a1a1a;
-  border-color: #3a3a3a;
+@media (prefers-color-scheme: dark) {
+  [data-tng-extension] .tng-payment-card {
+    background: #1a1a1a;
+    border-color: #3a3a3a;
+  }
 }
 
 /* QR container — always white for scanning */

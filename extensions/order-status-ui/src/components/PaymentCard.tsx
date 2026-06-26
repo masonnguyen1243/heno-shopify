@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useColorScheme } from "@shopify/ui-extensions-react/customer-account";
 import { fetchTingeeData } from "../api/client";
 import type { TingeeDataResponse } from "../api/client";
 import { formatVndAmount } from "../utils/formatters";
@@ -25,8 +24,6 @@ export function PaymentCard({ orderId, amount, orderNumber, locale, financialSta
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [data, setData] = useState<TingeeDataResponse | null>(null);
   const isMobile = useMobileDetect();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
 
   // Must call hooks before conditional returns (React rules of hooks)
   const { status: polledStatus, paidAt, showConnectionToast } = usePaymentStatus(
@@ -51,7 +48,7 @@ export function PaymentCard({ orderId, amount, orderNumber, locale, financialSta
     return () => controller.abort();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const containerClass = `tng-payment-container${isDark ? " tng-payment-container--dark" : ""}`;
+  const containerClass = "tng-payment-container";
 
   // polledStatus available immediately from sessionStorage cache (AC8), even before fetchTingeeData completes
   const effectiveStatus = polledStatus ?? (loadState === "loaded" ? (data?.status ?? null) : null);
