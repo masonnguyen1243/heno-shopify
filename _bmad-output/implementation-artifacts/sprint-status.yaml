@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-06-22T03:00:00.000Z"
-last_updated: "2026-06-26T14:00:00.000Z"
+last_updated: "2026-06-26T15:00:00.000Z"
 project: Tingee-Shopify-App
 project_key: NOKEY
 tracking_system: file-system
@@ -59,7 +59,7 @@ development_status:
   2-3-order-status-extension-foundation-and-loading-state: done
   2-4-qr-display-deeplink-button-and-mobile-detection: done
   2-5-real-time-polling-status-updates-and-offline-resilience: done
-  2-6-countdown-timer-and-qr-expiry-state: backlog
+  2-6-countdown-timer-and-qr-expiry-state: ready-for-dev
   epic-2-retrospective: optional
 
   # Epic 3: Payment Reconciliation & Automated Order Fulfillment
