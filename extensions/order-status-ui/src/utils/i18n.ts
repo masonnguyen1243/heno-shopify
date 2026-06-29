@@ -11,6 +11,8 @@ const translations = {
     qrAltText: (amount: string) => `Mã QR thanh toán ${amount} đồng qua Tingee`,
     checkingConnection: "Đang kiểm tra kết nối...",
     paidConfirmMessage: "Đơn hàng của bạn đã được xác nhận. Cảm ơn!",
+    timeoutMessage: "Chưa nhận được xác nhận thanh toán. Nếu bạn đã thanh toán, đơn hàng sẽ được xác nhận trong vài phút.",
+    contactSupport: "Liên hệ hỗ trợ",
   },
   en: {
     loading: "Loading...",
@@ -24,6 +26,8 @@ const translations = {
     qrAltText: (amount: string) => `QR code to pay ${amount} đ via Tingee`,
     checkingConnection: "Checking connection...",
     paidConfirmMessage: "Your order has been confirmed. Thank you!",
+    timeoutMessage: "Payment confirmation not yet received. If you've already paid, your order will be confirmed in a few minutes.",
+    contactSupport: "Contact support",
   },
 };
 

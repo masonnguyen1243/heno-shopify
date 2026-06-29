@@ -34,3 +34,8 @@ export const pollingRateLimiter = createRateLimiter({
   windowMs: 10_000,
   max: 10,
 });
+
+export const webhookRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});

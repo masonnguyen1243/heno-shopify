@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import type { TingeeDataResponse } from "../api/client";
 
 vi.mock("../api/client", () => ({
@@ -23,6 +23,12 @@ vi.mock("../hooks/usePaymentStatus", () => ({
 vi.mock("./StatusBadge", () => ({
   StatusBadge: ({ status }: { status: string }) => (
     <span data-testid="status-badge">{status}</span>
+  ),
+}));
+
+vi.mock("./CountdownTimer", () => ({
+  CountdownTimer: ({ onExpire }: { onExpire: () => void; expiresAt: string | null; locale: string }) => (
+    <button data-testid="mock-countdown" onClick={onExpire}>countdown</button>
   ),
 }));
 
@@ -131,5 +137,80 @@ describe("PaymentCard", () => {
     await waitFor(() => {
       expect(screen.getByText("Đang kiểm tra kết nối...")).toBeTruthy();
     });
+  });
+
+  it("renders CountdownTimer in PENDING state", async () => {
+    vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
+    vi.mocked(usePaymentStatus).mockReturnValue({ status: null, paidAt: undefined, showConnectionToast: false });
+    render(<PaymentCard {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("mock-countdown")).toBeTruthy();
+    });
+  });
+
+  it("transitions to EXPIRED state when CountdownTimer fires onExpire", async () => {
+    vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
+    vi.mocked(usePaymentStatus).mockReturnValue({ status: null, paidAt: undefined, showConnectionToast: false });
+    render(<PaymentCard {...defaultProps} locale="vi" />);
+    await waitFor(() => {
+      expect(screen.getByTestId("mock-countdown")).toBeTruthy();
+    });
+    act(() => {
+      fireEvent.click(screen.getByTestId("mock-countdown"));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Mã QR đã hết hạn sau 15 phút.")).toBeTruthy();
+      expect(screen.getByText("Quay lại cửa hàng")).toBeTruthy();
+    });
+  });
+
+  it("shows expiredMessage and 'Quay lại cửa hàng' when status is EXPIRED", async () => {
+    vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
+    vi.mocked(usePaymentStatus).mockReturnValue({ status: "EXPIRED", paidAt: undefined, showConnectionToast: false });
+    render(<PaymentCard {...defaultProps} locale="vi" />);
+    await waitFor(() => {
+      expect(screen.getByText("Mã QR đã hết hạn sau 15 phút.")).toBeTruthy();
+      expect(screen.getByText("Quay lại cửa hàng")).toBeTruthy();
+    });
+  });
+
+  it("does NOT show 'Tạo lại QR' button in EXPIRED state", async () => {
+    vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
+    vi.mocked(usePaymentStatus).mockReturnValue({ status: "EXPIRED", paidAt: undefined, showConnectionToast: false });
+    render(<PaymentCard {...defaultProps} locale="vi" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Tạo lại QR")).toBeNull();
+    });
+  });
+
+  it("shows timeout message and contact support link after 30 minutes", async () => {
+    const T = 1_000_000_000_000;
+    let mountDone = false;
+    vi.spyOn(Date, "now").mockImplementation(() =>
+      mountDone ? T + 31 * 60 * 1000 : T
+    );
+
+    vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
+    vi.mocked(usePaymentStatus).mockReturnValue({ status: "EXPIRED", paidAt: undefined, showConnectionToast: false });
+
+    render(<PaymentCard {...defaultProps} locale="vi" />);
+    mountDone = true; // subsequent Date.now() calls return T+31min
+
+    await waitFor(() => {
+      expect(screen.getByText("Chưa nhận được xác nhận thanh toán. Nếu bạn đã thanh toán, đơn hàng sẽ được xác nhận trong vài phút.")).toBeTruthy();
+      expect(screen.getByText("Liên hệ hỗ trợ")).toBeTruthy();
+    });
+
+    vi.restoreAllMocks();
+  });
+
+  it("AC5: restores EXPIRED UI immediately from cache without flicker", async () => {
+    vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
+    vi.mocked(usePaymentStatus).mockReturnValue({ status: "EXPIRED", paidAt: undefined, showConnectionToast: false });
+    render(<PaymentCard {...defaultProps} locale="vi" />);
+    await waitFor(() => {
+      expect(screen.getByText("Mã QR đã hết hạn sau 15 phút.")).toBeTruthy();
+    });
+    expect(screen.queryByText("Chờ thanh toán")).toBeNull();
   });
 });

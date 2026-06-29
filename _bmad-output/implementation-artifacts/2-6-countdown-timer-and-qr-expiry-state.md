@@ -1,10 +1,10 @@
 ---
-baseline_commit: ""
+baseline_commit: "NO_VCS"
 ---
 
 # Story 2.6: Countdown Timer & QR Expiry State
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -28,160 +28,82 @@ So that I never end up stuck on a page with an unusable QR.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Tạo `extensions/order-status-ui/src/hooks/useCountdown.ts` (AC: #1, #2, #6)
-  - [ ] Export `CountdownResult` type: `{ secondsLeft: number; isExpired: boolean }`
-  - [ ] Signature: `useCountdown(expiresAt: string | null, onExpire?: () => void): CountdownResult`
-  - [ ] Tính `secondsLeft` từ `Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000))`
-  - [ ] Khởi tạo state bằng lazy initializer — tránh flash "15:00" khi expiresAt đã gần hết
-  - [ ] Dùng `setInterval(1000)` để giảm secondsLeft mỗi giây
-  - [ ] Dùng `useRef` để track `onExpireCalled` — đảm bảo `onExpire()` chỉ gọi đúng 1 lần khi `secondsLeft === 0`
-  - [ ] Cleanup `clearInterval` khi unmount
-  - [ ] Khi `expiresAt === null`: return `{ secondsLeft: 0, isExpired: false }` (không start timer)
-  - [ ] Khi `expiresAt` đã qua: return `{ secondsLeft: 0, isExpired: true }` ngay lập tức (không wait 1 tick)
+- [x] Task 1: Tạo `extensions/order-status-ui/src/hooks/useCountdown.ts` (AC: #1, #2, #6)
+  - [x] Export `CountdownResult` type: `{ secondsLeft: number; isExpired: boolean }`
+  - [x] Signature: `useCountdown(expiresAt: string | null, onExpire?: () => void): CountdownResult`
+  - [x] Tính `secondsLeft` từ `Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000))`
+  - [x] Khởi tạo state bằng lazy initializer — tránh flash "15:00" khi expiresAt đã gần hết
+  - [x] Dùng `setInterval(1000)` để giảm secondsLeft mỗi giây
+  - [x] Dùng `useRef` để track `onExpireCalled` — đảm bảo `onExpire()` chỉ gọi đúng 1 lần khi `secondsLeft === 0`
+  - [x] Cleanup `clearInterval` khi unmount
+  - [x] Khi `expiresAt === null`: return `{ secondsLeft: 0, isExpired: false }` (không start timer)
+  - [x] Khi `expiresAt` đã qua: return `{ secondsLeft: 0, isExpired: true }` ngay lập tức (không wait 1 tick)
 
-- [ ] Task 2: Tạo `extensions/order-status-ui/src/hooks/useCountdown.test.ts` (AC: #1, #2, #6)
-  - [ ] `// @vitest-environment jsdom`
-  - [ ] `vi.useFakeTimers()` trong `beforeEach`; `vi.useRealTimers()` trong `afterEach`
-  - [ ] Test: `expiresAt` = now + 900s → `secondsLeft = 900`, `isExpired = false`
-  - [ ] Test: Advance timer 1000ms → `secondsLeft = 899`
-  - [ ] Test: Advance timer đến hết → `secondsLeft = 0`, `isExpired = true`
-  - [ ] Test: `onExpire` gọi đúng 1 lần khi countdown về 0 (không gọi lại ở tick tiếp theo)
-  - [ ] Test: `expiresAt` đã qua → `isExpired = true` ngay lập tức, `onExpire` gọi ngay
-  - [ ] Test: `expiresAt = null` → `secondsLeft = 0`, `isExpired = false`, timer KHÔNG chạy
-  - [ ] Test: Unmount → không có memory leak (timer cleared — dùng `vi.getTimerCount()`)
+- [x] Task 2: Tạo `extensions/order-status-ui/src/hooks/useCountdown.test.ts` (AC: #1, #2, #6)
+  - [x] `// @vitest-environment jsdom`
+  - [x] `vi.useFakeTimers()` trong `beforeEach`; `vi.useRealTimers()` trong `afterEach`
+  - [x] Test: `expiresAt` = now + 900s → `secondsLeft = 900`, `isExpired = false`
+  - [x] Test: Advance timer 1000ms → `secondsLeft = 899`
+  - [x] Test: Advance timer đến hết → `secondsLeft = 0`, `isExpired = true`
+  - [x] Test: `onExpire` gọi đúng 1 lần khi countdown về 0 (không gọi lại ở tick tiếp theo)
+  - [x] Test: `expiresAt` đã qua → `isExpired = true` ngay lập tức, `onExpire` gọi ngay
+  - [x] Test: `expiresAt = null` → `secondsLeft = 0`, `isExpired = false`, timer KHÔNG chạy
+  - [x] Test: Unmount → không có memory leak (timer cleared — dùng `vi.getTimerCount()`)
 
-- [ ] Task 3: Tạo `extensions/order-status-ui/src/components/CountdownTimer.tsx` (AC: #1)
-  - [ ] Props: `{ expiresAt: string | null; onExpire: () => void; locale: string }`
-  - [ ] Gọi `useCountdown(expiresAt, onExpire)`
-  - [ ] Format "mm:ss": `String(Math.floor(secondsLeft / 60)).padStart(2, '0') + ':' + String(secondsLeft % 60).padStart(2, '0')`
-  - [ ] Không render gì nếu `isExpired` (CountdownTimer ẩn khi hết hạn — EXPIRED render xử lý bởi PaymentCard)
-  - [ ] JSX: `<p className="tng-countdown-timer" aria-live="off" aria-label="...">mm:ss</p>`
-  - [ ] `aria-label`: vi = `"Thời gian còn lại: ${mm} phút ${ss} giây"`, en = `"Time remaining: ${mm} minutes ${ss} seconds"` — dùng `locale` prop
+- [x] Task 3: Tạo `extensions/order-status-ui/src/components/CountdownTimer.tsx` (AC: #1)
+  - [x] Props: `{ expiresAt: string | null; onExpire: () => void; locale: string }`
+  - [x] Gọi `useCountdown(expiresAt, onExpire)`
+  - [x] Format "mm:ss": `String(Math.floor(secondsLeft / 60)).padStart(2, '0') + ':' + String(secondsLeft % 60).padStart(2, '0')`
+  - [x] Không render gì nếu `isExpired` (CountdownTimer ẩn khi hết hạn — EXPIRED render xử lý bởi PaymentCard)
+  - [x] JSX: `<p className="tng-countdown-timer" aria-live="off" aria-label="...">mm:ss</p>`
+  - [x] `aria-label`: vi = `"Thời gian còn lại: ${mm} phút ${ss} giây"`, en = `"Time remaining: ${mm} minutes ${ss} seconds"` — dùng `locale` prop
 
-- [ ] Task 4: Tạo `extensions/order-status-ui/src/components/CountdownTimer.test.tsx` (AC: #1)
-  - [ ] `// @vitest-environment jsdom`
-  - [ ] Mock `useCountdown`: `vi.mock('../hooks/useCountdown', () => ({ useCountdown: vi.fn() }))`
-  - [ ] Test: `secondsLeft = 900` → renders "15:00"
-  - [ ] Test: `secondsLeft = 61` → renders "01:01"
-  - [ ] Test: `secondsLeft = 0`, `isExpired = true` → renders nothing (không render `<p>`)
-  - [ ] Test: `aria-live="off"` trên `<p>` element
-  - [ ] Test: locale "vi" → `aria-label` chứa "Thời gian còn lại"
-  - [ ] Test: locale "en" → `aria-label` chứa "Time remaining"
+- [x] Task 4: Tạo `extensions/order-status-ui/src/components/CountdownTimer.test.tsx` (AC: #1)
+  - [x] `// @vitest-environment jsdom`
+  - [x] Mock `useCountdown`: `vi.mock('../hooks/useCountdown', () => ({ useCountdown: vi.fn() }))`
+  - [x] Test: `secondsLeft = 900` → renders "15:00"
+  - [x] Test: `secondsLeft = 61` → renders "01:01"
+  - [x] Test: `secondsLeft = 0`, `isExpired = true` → renders nothing (không render `<p>`)
+  - [x] Test: `aria-live="off"` trên `<p>` element
+  - [x] Test: locale "vi" → `aria-label` chứa "Thời gian còn lại"
+  - [x] Test: locale "en" → `aria-label` chứa "Time remaining"
 
-- [ ] Task 5: Cập nhật `extensions/order-status-ui/src/utils/i18n.ts` (AC: #2, #4)
-  - [ ] Thêm `timeoutMessage`: vi = `"Chưa nhận được xác nhận thanh toán. Nếu bạn đã thanh toán, đơn hàng sẽ được xác nhận trong vài phút."`, en = `"Payment confirmation not yet received. If you've already paid, your order will be confirmed in a few minutes."`
-  - [ ] Thêm `contactSupport`: vi = `"Liên hệ hỗ trợ"`, en = `"Contact support"`
-  - [ ] Giữ nguyên mọi key hiện có — chỉ append `timeoutMessage` và `contactSupport`
+- [x] Task 5: Cập nhật `extensions/order-status-ui/src/utils/i18n.ts` (AC: #2, #4)
+  - [x] Thêm `timeoutMessage`: vi = `"Chưa nhận được xác nhận thanh toán. Nếu bạn đã thanh toán, đơn hàng sẽ được xác nhận trong vài phút."`, en = `"Payment confirmation not yet received. If you've already paid, your order will be confirmed in a few minutes."`
+  - [x] Thêm `contactSupport`: vi = `"Liên hệ hỗ trợ"`, en = `"Contact support"`
+  - [x] Giữ nguyên mọi key hiện có — chỉ append `timeoutMessage` và `contactSupport`
 
-- [ ] Task 6: Cập nhật `extensions/order-status-ui/src/components/PaymentCard.tsx` (AC: #1-#6)
-  - [ ] Import `CountdownTimer` từ `./CountdownTimer`
-  - [ ] Import `useRef`, `useCallback` (đã có từ React — chỉ thêm nếu chưa có)
-  - [ ] Thêm `mountTimeRef = useRef(Date.now())` ngay TRƯỚC `const [loadState, ...]` (đảm bảo mount time được capture ngay lập tức)
-  - [ ] Thêm `const [localExpired, setLocalExpired] = useState(false)` — đặt cạnh `useState` khác
-  - [ ] Thêm `const handleLocalExpiry = useCallback(() => setLocalExpired(true), [])`
-  - [ ] Cập nhật `effectiveStatus` calculation:
+- [x] Task 6: Cập nhật `extensions/order-status-ui/src/components/PaymentCard.tsx` (AC: #1-#6)
+  - [x] Import `CountdownTimer` từ `./CountdownTimer`
+  - [x] Import `useRef`, `useCallback` (đã có từ React — chỉ thêm nếu chưa có)
+  - [x] Thêm `mountTimeRef = useRef(Date.now())` ngay TRƯỚC `const [loadState, ...]` (đảm bảo mount time được capture ngay lập tức)
+  - [x] Thêm `const [localExpired, setLocalExpired] = useState(false)` — đặt cạnh `useState` khác
+  - [x] Thêm `const handleLocalExpiry = useCallback(() => setLocalExpired(true), [])`
+  - [x] Cập nhật `effectiveStatus` calculation:
     ```tsx
     const baseStatus = polledStatus ?? (loadState === "loaded" ? (data?.status ?? null) : null);
     const effectiveStatus: PaymentStatus | null =
       localExpired && baseStatus !== "COMPLETED" ? "EXPIRED" : baseStatus;
     ```
-  - [ ] Trong PENDING render: thêm `<CountdownTimer expiresAt={data?.expiresAt ?? null} onExpire={handleLocalExpiry} locale={locale} />` — đặt SAU `<StatusBadge>` và TRƯỚC `{showConnectionToast && ...}`
-  - [ ] **THAY THẾ HOÀN TOÀN** EXPIRED render hiện tại (đang dùng raw `<span>`) bằng render mới:
-    ```tsx
-    if (effectiveStatus === "EXPIRED") {
-      const elapsed = Date.now() - mountTimeRef.current;
-      const showTimeout = elapsed > 30 * 60 * 1000;
-      return (
-        <div data-tng-extension className={containerClass}>
-          <div className="tng-payment-card">
-            <StatusBadge status="EXPIRED" locale={locale} />
-            {showTimeout ? (
-              <>
-                <p className="tng-timeout-message">{t("timeoutMessage", locale)}</p>
-                <a href="/pages/contact" className="tng-support-link">
-                  {t("contactSupport", locale)}
-                </a>
-              </>
-            ) : (
-              <>
-                <p className="tng-error-fallback">{t("expiredMessage", locale)}</p>
-                <a href="/" className="tng-back-to-store">
-                  {t("backToStore", locale)}
-                </a>
-              </>
-            )}
-          </div>
-        </div>
-      );
-    }
-    ```
-  - [ ] **KHÔNG THÊM** bất kỳ nút "Tạo lại QR" hay "Refresh" nào (AC #3 — hard requirement)
+  - [x] Trong PENDING render: thêm `<CountdownTimer expiresAt={data?.expiresAt ?? null} onExpire={handleLocalExpiry} locale={locale} />` — đặt SAU `<StatusBadge>` và TRƯỚC `{showConnectionToast && ...}`
+  - [x] **THAY THẾ HOÀN TOÀN** EXPIRED render hiện tại (đang dùng raw `<span>`) bằng render mới
+  - [x] **KHÔNG THÊM** bất kỳ nút "Tạo lại QR" hay "Refresh" nào (AC #3 — hard requirement)
 
-- [ ] Task 7: Cập nhật `extensions/order-status-ui/src/components/PaymentCard.css` (AC: #1, #2)
-  - [ ] Thêm countdown timer style:
-    ```css
-    [data-tng-extension] .tng-countdown-timer {
-      font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
-      font-size: 13px;
-      color: #6b6b6b;
-      text-align: center;
-      margin-top: 8px;
-    }
-    ```
-  - [ ] Thêm "Quay lại cửa hàng" button style:
-    ```css
-    [data-tng-extension] .tng-back-to-store {
-      display: inline-block;
-      margin-top: 12px;
-      font-size: 14px;
-      color: #e12a41;
-      text-decoration: underline;
-      min-height: 44px;
-      line-height: 44px;
-      text-align: center;
-      width: 100%;
-    }
-    ```
-  - [ ] Thêm 30-minute timeout message + support link:
-    ```css
-    [data-tng-extension] .tng-timeout-message {
-      font-size: 13px;
-      color: #6b6b6b;
-      text-align: center;
-      margin-top: 8px;
-      line-height: 1.5;
-    }
+- [x] Task 7: Cập nhật `extensions/order-status-ui/src/components/PaymentCard.css` (AC: #1, #2)
+  - [x] Thêm countdown timer style
+  - [x] Thêm "Quay lại cửa hàng" button style
+  - [x] Thêm 30-minute timeout message + support link
+  - [x] Không chỉnh sửa `.tng-status-badge--expired` (đã có từ Story 2.3)
 
-    [data-tng-extension] .tng-support-link {
-      display: inline-block;
-      margin-top: 8px;
-      font-size: 13px;
-      color: #e12a41;
-      text-decoration: underline;
-      min-height: 44px;
-      line-height: 44px;
-      text-align: center;
-      width: 100%;
-    }
-    ```
-  - [ ] Không chỉnh sửa `.tng-status-badge--expired` (đã có từ Story 2.3)
-
-- [ ] Task 8: Cập nhật `extensions/order-status-ui/src/components/PaymentCard.test.tsx` (AC: #1-#6)
-  - [ ] Thêm mock `CountdownTimer`:
-    ```tsx
-    vi.mock('./CountdownTimer', () => ({
-      CountdownTimer: ({ onExpire }: { onExpire: () => void; expiresAt: string | null; locale: string }) => (
-        <button data-testid="mock-countdown" onClick={onExpire}>countdown</button>
-      ),
-    }));
-    ```
-  - [ ] Test: PENDING state → `CountdownTimer` renders (data-testid="mock-countdown" present), `expiresAt` prop passed down
-  - [ ] Test: click `mock-countdown` (simulate onExpire) → EXPIRED state renders (hides QR, shows expiredMessage)
-  - [ ] Test: EXPIRED state (via `usePaymentStatus` returning 'EXPIRED') → "Mã QR đã hết hạn sau 15 phút." và "Quay lại cửa hàng" hiển thị
-  - [ ] Test: EXPIRED state → KHÔNG có text "Tạo lại QR"
-  - [ ] Test: EXPIRED state với `Date.now() > mountTime + 30min` → "Chưa nhận được xác nhận thanh toán..." và "Liên hệ hỗ trợ" hiển thị (dùng `vi.setSystemTime()` để advance clock)
-  - [ ] Test: AC5 — `usePaymentStatus` trả `status: 'EXPIRED'` từ cache → EXPIRED UI render ngay không flicker (giống COMPLETED test pattern)
-  - [ ] Giữ nguyên tất cả tests hiện có — chỉ thêm mock + tests mới
+- [x] Task 8: Cập nhật `extensions/order-status-ui/src/components/PaymentCard.test.tsx` (AC: #1-#6)
+  - [x] Thêm mock `CountdownTimer`
+  - [x] Test: PENDING state → `CountdownTimer` renders (data-testid="mock-countdown" present), `expiresAt` prop passed down
+  - [x] Test: click `mock-countdown` (simulate onExpire) → EXPIRED state renders (hides QR, shows expiredMessage)
+  - [x] Test: EXPIRED state (via `usePaymentStatus` returning 'EXPIRED') → "Mã QR đã hết hạn sau 15 phút." và "Quay lại cửa hàng" hiển thị
+  - [x] Test: EXPIRED state → KHÔNG có text "Tạo lại QR"
+  - [x] Test: EXPIRED state với `Date.now() > mountTime + 30min` → "Chưa nhận được xác nhận thanh toán..." và "Liên hệ hỗ trợ" hiển thị
+  - [x] Test: AC5 — `usePaymentStatus` trả `status: 'EXPIRED'` từ cache → EXPIRED UI render ngay không flicker
+  - [x] Giữ nguyên tất cả tests hiện có — chỉ thêm mock + tests mới
 
 ## Dev Notes
 
@@ -480,6 +402,45 @@ claude-sonnet-4-6
 
 ### Debug Log References
 
+- Pre-existing test failure không liên quan story 2.6: `usePaymentStatus.test.ts > ignores sessionStorage cache older than 30s` — đã có trước khi implement, không do thay đổi story này gây ra.
+- Test "shows timeout message after 30 minutes": cần dùng `vi.spyOn(Date, 'now')` thay vì `vi.useFakeTimers()` để tránh `waitFor` bị block. `mountDone` flag cho phép first render capture mount time `T`, subsequent renders và EXPIRED check dùng `T + 31min`.
+
 ### Completion Notes List
 
+- **Task 1-2**: `useCountdown` hook với lazy initializer, `onExpireRef` pattern tránh stale closure, `onExpireCalledRef` đảm bảo callback chỉ fire 1 lần. 9 tests xanh.
+- **Task 3-4**: `CountdownTimer` component với `aria-live="off"` (critical per AC1), format "mm:ss", returns null khi isExpired. 6 tests xanh.
+- **Task 5**: Thêm `timeoutMessage` + `contactSupport` vào `i18n.ts` cho cả vi và en.
+- **Task 6**: `PaymentCard` — thêm `mountTimeRef`, `localExpired` state, `handleLocalExpiry` callback, `effectiveStatus` với COMPLETED-wins logic, CountdownTimer trong PENDING render (guard `data?.expiresAt`), EXPIRED render mới dùng `StatusBadge` + conditional 30-min timeout. 7 tests mới xanh, tất cả tests cũ giữ nguyên.
+- **Task 7**: CSS cho `.tng-countdown-timer` (JetBrains Mono 13px, #6b6b6b), `.tng-back-to-store`, `.tng-timeout-message`, `.tng-support-link`.
+- **Task 8**: Thêm `CountdownTimer` mock + 6 tests mới vào `PaymentCard.test.tsx`.
+- Tổng: 83/84 tests xanh (1 pre-existing failure không thuộc story 2.6).
+
 ### File List
+
+- `extensions/order-status-ui/src/hooks/useCountdown.ts` (NEW)
+- `extensions/order-status-ui/src/hooks/useCountdown.test.ts` (NEW)
+- `extensions/order-status-ui/src/components/CountdownTimer.tsx` (NEW)
+- `extensions/order-status-ui/src/components/CountdownTimer.test.tsx` (NEW)
+- `extensions/order-status-ui/src/utils/i18n.ts` (MODIFIED)
+- `extensions/order-status-ui/src/components/PaymentCard.tsx` (MODIFIED)
+- `extensions/order-status-ui/src/components/PaymentCard.css` (MODIFIED)
+- `extensions/order-status-ui/src/components/PaymentCard.test.tsx` (MODIFIED)
+
+### Senior Developer Review (AI)
+
+**Outcome:** Changes Requested | **Date:** 2026-06-28
+
+#### Action Items
+
+- [x] [Review][Decision] FAILED status bị override bởi localExpired — dismissed, giữ nguyên EXPIRED thắng FAILED (user decision 2026-06-28)
+- [x] [Review][Decision] AC6 aria-live không guaranteed — dismissed, dynamic insertion đủ cho Phase 1 (user decision 2026-06-28)
+- [x] [Review][Patch] onExpireCalledRef không reset khi expiresAt thay đổi — FIXED: thêm reset trong useEffect, thêm test [useCountdown.ts:useEffect]
+- [x] [Review][Patch] Invalid date string → NaN trong computeSecondsLeft — FIXED: thêm isNaN guard + isValidExpiresAt trong return, thêm 2 tests [useCountdown.ts:computeSecondsLeft]
+- [x] [Review][Defer] Hard-coded URLs `/pages/contact` và `/` có thể 404 trên non-standard Shopify URL config [PaymentCard.tsx] — deferred, Phase 1 acceptable per Dev Notes
+- [x] [Review][Defer] >99min expiresAt gây 3+ chữ số phút, phá MM:SS layout [CountdownTimer.tsx:14] — deferred, QR luôn 15min max trong implementation này
+- [x] [Review][Defer] CSS `line-height: 44px` break khi text wrap trên viewport hẹp [PaymentCard.css] — deferred, label text đủ ngắn
+
+## Change Log
+
+- 2026-06-27: Story 2.6 implemented — Countdown Timer & QR Expiry State. Tạo mới `useCountdown` hook và `CountdownTimer` component. Cập nhật `PaymentCard` với timer integration, EXPIRED render mới dùng `StatusBadge`, 30-min timeout state. Thêm i18n keys `timeoutMessage` và `contactSupport`. 30 tests mới tất cả xanh.
+- 2026-06-28: Code review — 2 decision-needed, 2 patch, 3 deferred, 17 dismissed.

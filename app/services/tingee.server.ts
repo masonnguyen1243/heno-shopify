@@ -4,6 +4,7 @@ import {
   TingeeHttpError,
 } from "@tingee/sdk-node";
 import { env } from "../lib/env.server";
+import { verifyHMAC } from "../lib/hmac.server";
 
 export class InvalidCredentialsError extends Error {
   constructor(message = "Invalid Tingee credentials") {
@@ -167,12 +168,29 @@ export async function generateDeeplink(params: {
   }
 }
 
-// Stub — implemented in Story 3.1
-export function verifyWebhookHMAC(_params: {
+function parseTimestampUTC(ts: string): number {
+  if (!ts || ts.length !== 17) return 0;
+  const y = parseInt(ts.slice(0, 4));
+  const mo = parseInt(ts.slice(4, 6)) - 1;
+  const d = parseInt(ts.slice(6, 8));
+  const h = parseInt(ts.slice(8, 10));
+  const mi = parseInt(ts.slice(10, 12));
+  const s = parseInt(ts.slice(12, 14));
+  const ms = parseInt(ts.slice(14, 17));
+  // Tingee sends UTC+7, subtract 7h to convert to UTC epoch
+  const utcMs = Date.UTC(y, mo, d, h - 7, mi, s, ms);
+  return isNaN(utcMs) ? 0 : utcMs;
+}
+
+export function verifyWebhookHMAC(params: {
   secretToken: string;
   signature: string;
   timestamp: string;
-  body: object | string;
+  body: string | object;
 }): boolean {
-  throw new Error("verifyWebhookHMAC: not implemented until Story 3.1");
+  const bodyStr = typeof params.body === "string" ? params.body : JSON.stringify(params.body);
+  const tsMs = parseTimestampUTC(params.timestamp);
+  if (tsMs === 0) return false;
+  if (tsMs > Date.now() || Date.now() - tsMs > 5 * 60 * 1000) return false;
+  return verifyHMAC({ signature: params.signature, timestamp: params.timestamp, body: bodyStr, secretToken: params.secretToken });
 }

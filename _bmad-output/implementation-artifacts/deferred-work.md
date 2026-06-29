@@ -1,4 +1,12 @@
 
+## Deferred from: code review of 3-1-tingee-webhook-endpoint-and-hmac-validation (2026-06-29)
+
+- Rate limiter trusts attacker-controlled `x-forwarded-for` — pre-existing pattern matching `pollingRateLimiter`; revisit when hardening auth boundary or adding IP allowlist for Tingee egress
+- "unknown" shared rate bucket collapses all proxy-less requests — deployment concern; ensure Fly.io always sets `x-forwarded-for` or fall back to `cf-connecting-ip`/`x-real-ip`
+- Shop-existence timing oracle via credential lookup latency — `getDecryptedCredential` is called before HMAC verify; both 400 paths return same status but DB latency distinguishes them; revisit if enumeration becomes a concern
+- Test coverage gap for h<7 timestamps (midnight–06:59 UTC+7) — `parseTimestampUTC` math is correct (Date.UTC handles negative hours by rolling to previous day); add boundary test when time permits
+- `parseTimestampUTC` weak non-digit input handling — mixed-digit timestamps of correct length (e.g. "2026AB29143052123") produce wrong-but-safe epochs via parseInt NaN chain; code reaches correct `false` outcome via accidental path; add explicit digit-only validation if Tingee timestamp format is ever loosened
+
 ## Deferred from: code review of 2-5-real-time-polling-status-updates-and-offline-resilience (2026-06-26)
 
 - No maximum retry count or wall-clock timeout for permanently PENDING orders — polling backs off to 30s but never stops; `EXPIRED_TIMEOUT_MS` constant exists in constants.ts but unused by hook
@@ -103,3 +111,9 @@
 - fly.toml: migration deploy trước khi old machines dừng — backward-compat concern cho future migrations, không ảnh hưởng init migration
 - container/prisma singletons trong test/helpers/db.ts — vấn đề chỉ xảy ra khi parallel workers, không phải default vitest config
 - automatically_update_urls_on_dev=true + include_config_on_deploy=true — standard Shopify template behavior
+
+## Deferred from: code review of 2-6-countdown-timer-and-qr-expiry-state (2026-06-28)
+
+- Hard-coded URLs `/pages/contact` và `/` có thể 404 trên non-standard Shopify URL config (PaymentCard.tsx) — Phase 1 acceptable per Dev Notes; cần dynamic shopUrl prop khi Extension nhận thêm props
+- >99min expiresAt gây 3+ chữ số phút trong CountdownTimer MM:SS format (CountdownTimer.tsx:14) — không applicable với 15-min QR, nhưng cần cap nếu hook được tái sử dụng
+- CSS `line-height: 44px` break khi text wrap trên viewport hẹp (PaymentCard.css) — label text đủ ngắn hiện tại; fix nếu bổ sung locales với string dài hơn

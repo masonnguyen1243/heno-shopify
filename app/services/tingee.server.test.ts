@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const { mockGenerateVietQr, mockGenerateDeeplink, mockIsSuccessResponse } =
   vi.hoisted(() => ({
@@ -30,11 +30,15 @@ vi.mock("../lib/env.server", () => ({
   env: { TINGEE_SDK_TIMEOUT_MS: 4000 },
 }));
 
+vi.mock("../lib/hmac.server", () => ({ verifyHMAC: vi.fn() }));
+
 import {
   generateQR,
   generateDeeplink,
   TingeeConnectionError,
+  verifyWebhookHMAC,
 } from "./tingee.server";
+import { verifyHMAC } from "../lib/hmac.server";
 import { TingeeClient } from "@tingee/sdk-node";
 
 describe("generateQR", () => {
@@ -203,5 +207,64 @@ describe("generateDeeplink", () => {
     });
 
     expect(result).toBeNull();
+  });
+});
+
+describe("verifyWebhookHMAC", () => {
+  // Fresh timestamp: 2026-06-29 14:30:52.123 ICT = 07:30:52 UTC
+  const FRESH_TIMESTAMP = "20260629143052123";
+  // Stale timestamp: 2026-06-29 14:20:00.000 ICT = 07:20:00 UTC (11 min before now)
+  const STALE_TIMESTAMP = "20260629142000000";
+  const SECRET = "test-secret";
+  const BODY = '{"transactionCode":"TX123"}';
+  const BASE_PARAMS = { secretToken: SECRET, signature: "sig", timestamp: FRESH_TIMESTAMP, body: BODY };
+
+  // System time pinned to 2026-06-29 07:31:00.000 UTC (30s after FRESH_TIMESTAMP)
+  const NOW_UTC = Date.UTC(2026, 5, 29, 7, 31, 0, 0);
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+  });
+
+  it("returns true when signature valid and timestamp fresh", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW_UTC);
+    vi.mocked(verifyHMAC).mockReturnValue(true);
+
+    expect(verifyWebhookHMAC(BASE_PARAMS)).toBe(true);
+    expect(verifyHMAC).toHaveBeenCalledWith({
+      signature: "sig",
+      timestamp: FRESH_TIMESTAMP,
+      body: BODY,
+      secretToken: SECRET,
+    });
+  });
+
+  it("returns false when signature invalid and timestamp fresh", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW_UTC);
+    vi.mocked(verifyHMAC).mockReturnValue(false);
+
+    expect(verifyWebhookHMAC(BASE_PARAMS)).toBe(false);
+  });
+
+  it("returns false when timestamp older than 5 minutes (replay attack)", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW_UTC);
+    vi.mocked(verifyHMAC).mockReturnValue(true);
+
+    expect(verifyWebhookHMAC({ ...BASE_PARAMS, timestamp: STALE_TIMESTAMP })).toBe(false);
+    // verifyHMAC should not be called — rejected before reaching it
+    expect(verifyHMAC).not.toHaveBeenCalled();
+  });
+
+  it("returns false for malformed timestamp (not 17 chars)", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW_UTC);
+    vi.mocked(verifyHMAC).mockReturnValue(true);
+
+    expect(verifyWebhookHMAC({ ...BASE_PARAMS, timestamp: "20260629" })).toBe(false);
+    expect(verifyHMAC).not.toHaveBeenCalled();
   });
 });
