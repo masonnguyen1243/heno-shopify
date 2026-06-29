@@ -6,6 +6,16 @@ handle = "order-status-ui"
 uid = "5f3addd2-b7bb-fcb3-3e33-99de18c8963aa2de8253"
 type = "ui_extension"
 
+  [extensions.capabilities]
+  network_access = true
+
   [[extensions.targeting]]
   module = "./src/index.tsx"
-  target = "customer-account.order-status.block.render"
+  target = "purchase.thank-you.block.render"
+
+  [extensions.settings]
+    [[extensions.settings.fields]]
+    key = "app_url"
+    type = "single_line_text_field"
+    name = "App URL"
+    description = "URL của Tingee app backend (ví dụ: https://your-app.fly.dev)"

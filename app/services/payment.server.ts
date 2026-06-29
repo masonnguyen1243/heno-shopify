@@ -1,75 +1,10 @@
 import db from "../db.server";
 import { sanitizeForLog } from "../lib/logger.server";
-import { env } from "../lib/env.server";
 import { getDecryptedCredential } from "./credential.server";
 import { generateQR, generateDeeplink, TingeeConnectionError } from "./tingee.server";
-import { TingeeClient, isSuccessResponse } from "@tingee/sdk-node";
 import { insertIdempotencyRecord, updateIdempotencyStatus } from "../lib/idempotency.server";
 import { assertValidTransition } from "../lib/paymentStateMachine";
 import { addOrderNote } from "./order.server";
-
-interface MerchantAccountInfo {
-  accountNumber: string;
-  bankBin: string;
-  accountName: string;
-}
-
-async function getMerchantAccountInfo(
-  clientId: string,
-  secretToken: string
-): Promise<MerchantAccountInfo> {
-  const client = new TingeeClient({
-    clientId,
-    secretKey: secretToken,
-    environment: "production",
-    timeout: env.TINGEE_SDK_TIMEOUT_MS,
-  });
-
-  try {
-    // Get merchant info to obtain numeric merchantId
-    const merchantResult = await (client as any).merchant.getPaging({
-      skipCount: 0,
-      maxResultCount: 1,
-    });
-
-    if (!isSuccessResponse(merchantResult) || !merchantResult.data?.items?.length) {
-      throw new TingeeConnectionError("Cannot retrieve merchant info from Tingee");
-    }
-
-    const merchantId: number = merchantResult.data.items[0].id;
-
-    // Get VA list for this merchant
-    const vaResult = await (client as any).bank.getVaPaging({
-      merchantId,
-      skipCount: 0,
-      maxResultCount: 10,
-      accountType: "personal-account",
-      dataAccess: "referral-only",
-    });
-
-    if (!isSuccessResponse(vaResult) || !vaResult.data?.items?.length) {
-      throw new TingeeConnectionError("No virtual accounts found for merchant");
-    }
-
-    const activeVA = vaResult.data.items.find(
-      (va: any) => va.status === "active"
-    ) ?? vaResult.data.items[0];
-
-    if (!activeVA.bankBin) {
-      throw new TingeeConnectionError("Merchant VA has no bankBin configured in Tingee");
-    }
-    return {
-      accountNumber: activeVA.accountNumber,
-      bankBin: activeVA.bankBin,
-      accountName: activeVA.accountName ?? "",
-    };
-  } catch (error) {
-    if (error instanceof TingeeConnectionError) throw error;
-    throw new TingeeConnectionError(
-      error instanceof Error ? error.message : String(error)
-    );
-  }
-}
 
 export async function createPaymentData(params: {
   shopDomain: string;
@@ -117,10 +52,11 @@ export async function createPaymentData(params: {
     throw new Error(`Merchant has no Tingee credentials configured: ${sanitizeForLog({ shopDomain }).shopDomain}`);
   }
 
-  const { clientId, secretToken } = credential;
+  const { clientId, secretToken, accountNumber, bankBin, bankName } = credential;
 
-  // Fetch merchant bank account info from Tingee
-  const accountInfo = await getMerchantAccountInfo(clientId, secretToken);
+  if (!accountNumber || !bankBin) {
+    throw new Error(`Merchant bank account not configured: ${sanitizeForLog({ shopDomain }).shopDomain}`);
+  }
 
   // Generate QR (fatal if fails)
   const { qrCode, qrImageUrl } = await generateQR({
@@ -128,8 +64,8 @@ export async function createPaymentData(params: {
     secretToken,
     amount,
     orderNumber,
-    accountNumber: accountInfo.accountNumber,
-    bankBin: accountInfo.bankBin,
+    accountNumber,
+    bankBin,
   });
 
   // Generate Deeplink (non-fatal)
@@ -137,10 +73,10 @@ export async function createPaymentData(params: {
     clientId,
     secretToken,
     qrCode,
-    bankBin: accountInfo.bankBin,
-    destinationBankBin: accountInfo.bankBin,
-    accountName: accountInfo.accountName,
-    accountNumber: accountInfo.accountNumber,
+    bankBin,
+    destinationBankBin: bankBin,
+    accountName: bankName ?? "",
+    accountNumber,
     amount,
     content: `TINGEE ${orderNumber}`,
     billNumber: orderNumber,

@@ -11,6 +11,8 @@ vi.mock("../api/client", () => ({
 import { fetchPaymentStatus } from "../api/client";
 
 const mockFetch = vi.mocked(fetchPaymentStatus);
+const mockGetToken = vi.fn().mockResolvedValue("test-token");
+const mockAppUrl = "https://test-app.example.com";
 
 beforeEach(() => {
   sessionStorage.clear();
@@ -28,7 +30,7 @@ describe("usePaymentStatus", () => {
     mockFetch.mockResolvedValue({ status: "PENDING" });
 
     const { result } = renderHook(() =>
-      usePaymentStatus("order-1", "PENDING")
+      usePaymentStatus("order-1", "PENDING", mockGetToken, mockAppUrl)
     );
 
     expect(mockFetch).not.toHaveBeenCalled();
@@ -38,14 +40,14 @@ describe("usePaymentStatus", () => {
       await vi.advanceTimersByTimeAsync(1);
     });
 
-    expect(mockFetch).toHaveBeenCalledWith("order-1", expect.any(AbortSignal));
+    expect(mockFetch).toHaveBeenCalledWith("order-1", "test-token", mockAppUrl, expect.any(AbortSignal));
   });
 
   it("updates status to COMPLETED and stops polling", async () => {
     mockFetch.mockResolvedValue({ status: "COMPLETED", paidAt: "2026-06-26T12:00:00Z" });
 
     const { result } = renderHook(() =>
-      usePaymentStatus("order-1", "PENDING")
+      usePaymentStatus("order-1", "PENDING", mockGetToken, mockAppUrl)
     );
 
     await act(async () => {
@@ -96,7 +98,7 @@ describe("usePaymentStatus", () => {
     );
 
     const { result } = renderHook(() =>
-      usePaymentStatus("order-1", "PENDING")
+      usePaymentStatus("order-1", "PENDING", mockGetToken, mockAppUrl)
     );
 
     expect(result.current.showConnectionToast).toBe(false);
@@ -134,7 +136,7 @@ describe("usePaymentStatus", () => {
     mockFetch.mockResolvedValue({ status: "PENDING" });
 
     const { unmount } = renderHook(() =>
-      usePaymentStatus("order-1", "PENDING")
+      usePaymentStatus("order-1", "PENDING", mockGetToken, mockAppUrl)
     );
 
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
@@ -179,7 +181,7 @@ describe("usePaymentStatus", () => {
     sessionStorage.setItem("tng_payment_order-cache", JSON.stringify(cached));
 
     const { result } = renderHook(() =>
-      usePaymentStatus("order-cache", "PENDING")
+      usePaymentStatus("order-cache", "PENDING", mockGetToken, mockAppUrl)
     );
 
     // Should immediately have COMPLETED from cache without waiting for fetch
@@ -194,7 +196,7 @@ describe("usePaymentStatus", () => {
     mockFetch.mockResolvedValue({ status: "PENDING" });
 
     const { result } = renderHook(() =>
-      usePaymentStatus("order-stale", "PENDING")
+      usePaymentStatus("order-stale", "PENDING", mockGetToken, mockAppUrl)
     );
 
     // Stale cache should not rehydrate as COMPLETED — poll will return PENDING
@@ -206,7 +208,7 @@ describe("usePaymentStatus", () => {
 
   it("does not start polling if initialStatus is already a terminal state", async () => {
     const { result } = renderHook(() =>
-      usePaymentStatus("order-done", "COMPLETED")
+      usePaymentStatus("order-done", "COMPLETED", mockGetToken, mockAppUrl)
     );
 
     await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
@@ -216,7 +218,7 @@ describe("usePaymentStatus", () => {
   });
 
   it("does not poll when orderId is null", async () => {
-    renderHook(() => usePaymentStatus(null, null));
+    renderHook(() => usePaymentStatus(null, null, mockGetToken, mockAppUrl));
 
     await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
 

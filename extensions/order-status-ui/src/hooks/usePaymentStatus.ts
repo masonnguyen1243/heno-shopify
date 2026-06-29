@@ -39,7 +39,9 @@ export type UsePaymentStatusResult = {
 
 export function usePaymentStatus(
   orderId: string | null,
-  initialStatus: PaymentStatus | null
+  initialStatus: PaymentStatus | null,
+  getToken: () => Promise<string>,
+  appUrl: string
 ): UsePaymentStatusResult {
   const [status, setStatus] = useState<PaymentStatus | null>(() => {
     if (!orderId) return null;
@@ -78,7 +80,8 @@ export function usePaymentStatus(
     abortControllerRef.current = controller;
 
     try {
-      const result = await fetchPaymentStatus(orderId, controller.signal);
+      const token = await getToken();
+      const result = await fetchPaymentStatus(orderId, token, appUrl, controller.signal);
       if (!isActiveRef.current || controller.signal.aborted) return;
 
       consecutiveFailuresRef.current = 0;
@@ -114,7 +117,7 @@ export function usePaymentStatus(
         timerRef.current = setTimeout(poll, currentIntervalRef.current);
       }
     }
-  }, [orderId]);
+  }, [orderId, getToken, appUrl]);
 
   useEffect(() => {
     if (!orderId) return;
@@ -133,6 +136,7 @@ export function usePaymentStatus(
   }, [orderId, poll]);
 
   useEffect(() => {
+    if (typeof document === "undefined") return;
     const handleVisibility = () => {
       if (document.hidden) {
         pausedRef.current = true;

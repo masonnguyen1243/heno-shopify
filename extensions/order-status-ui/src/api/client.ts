@@ -23,15 +23,20 @@ export type TingeeDataError = {
 export async function fetchTingeeData(
   orderId: string,
   amount: number,
-  orderNumber: string
+  orderNumber: string,
+  token: string,
+  appUrl: string
 ): Promise<TingeeDataResponse> {
-  const url = `/api/orders/${encodeURIComponent(orderId)}/tingee-data?amount=${amount}&orderNumber=${encodeURIComponent(orderNumber)}`;
-  const response = await fetch(url);
+  const base = appUrl.replace(/\/$/, "");
+  const url = `${base}/api/orders/${encodeURIComponent(orderId)}/tingee-data?amount=${amount}&orderNumber=${encodeURIComponent(orderNumber)}`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
   if (!response.ok) {
     let err: TingeeDataError = { error: `HTTP ${response.status}`, code: "REQUEST_FAILED" };
     try {
-      err = await response.json();
+      err = await response.json() as TingeeDataError;
     } catch {
       // non-JSON error body (e.g. HTML 502/504)
     }
@@ -43,10 +48,16 @@ export async function fetchTingeeData(
 
 export async function fetchPaymentStatus(
   orderId: string,
+  token: string,
+  appUrl: string,
   signal?: AbortSignal
 ): Promise<PaymentStatusResponse> {
-  const url = `/api/orders/${encodeURIComponent(orderId)}/payment-status`;
-  const response = await fetch(url, { signal });
+  const base = appUrl.replace(/\/$/, "");
+  const url = `${base}/api/orders/${encodeURIComponent(orderId)}/payment-status`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal,
+  });
 
   if (!response.ok) {
     const err = (await response

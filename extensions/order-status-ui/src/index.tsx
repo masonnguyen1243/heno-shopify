@@ -1,30 +1,31 @@
 import {
   reactExtension,
-  useOrder,
+  useApi,
+  useSubscription,
   useLanguage,
-} from "@shopify/ui-extensions-react/customer-account";
+  useTotalAmount,
+} from "@shopify/ui-extensions-react/checkout";
+import type { OrderConfirmationApi, StandardApi } from "@shopify/ui-extensions/checkout";
 import { PaymentCard } from "./components/PaymentCard";
 
 export default reactExtension(
-  "customer-account.order-status.block.render",
+  "purchase.thank-you.block.render",
   () => <TingeePaymentBlock />
 );
 
 function TingeePaymentBlock() {
-  const order = useOrder();
+  const api = useApi<"purchase.thank-you.block.render">();
+  const orderConfirmation = useSubscription(api.orderConfirmation);
   const language = useLanguage();
+  const totalAmount = useTotalAmount();
 
-  if (!order) return null;
+  if (!orderConfirmation) return null;
 
-  const isTingeePayment =
-    order.paymentGatewayNames?.includes("Thanh toán qua Tingee QR");
-  if (!isTingeePayment) return null;
-
-  const amount = order.totalPrice?.amount
-    ? Math.round(parseFloat(order.totalPrice.amount))
-    : 0;
-  const orderNumber = order.name ?? order.id;
-  const orderId = order.id;
+  const amount = Math.round(totalAmount.amount);
+  // order.id is a GID like "gid://shopify/Order/12345" — extract the numeric part
+  const rawId = orderConfirmation.order.id;
+  const orderId = rawId.includes("/") ? rawId.split("/").pop()! : rawId;
+  const orderNumber = orderConfirmation.number ?? orderId;
 
   return (
     <PaymentCard
@@ -32,7 +33,6 @@ function TingeePaymentBlock() {
       amount={amount}
       orderNumber={orderNumber}
       locale={language?.isoCode ?? "en"}
-      financialStatus={order.financialStatus}
     />
   );
 }

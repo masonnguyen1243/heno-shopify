@@ -47,7 +47,13 @@ export async function deleteCredential(shop: string): Promise<void> {
 
 export async function getDecryptedCredential(
   shop: string
-): Promise<{ clientId: string; secretToken: string } | null> {
+): Promise<{
+  clientId: string;
+  secretToken: string;
+  accountNumber: string | null;
+  bankBin: string | null;
+  bankName: string | null;
+} | null> {
   const merchant = await db.merchant.findUnique({
     where: { shopDomain: shop },
     include: { credential: true },
@@ -56,7 +62,13 @@ export async function getDecryptedCredential(
   try {
     const clientId = decrypt(merchant.credential.encryptedClientId, env.ENCRYPTION_KEY);
     const secretToken = decrypt(merchant.credential.encryptedSecretToken, env.ENCRYPTION_KEY);
-    return { clientId, secretToken };
+    return {
+      clientId,
+      secretToken,
+      accountNumber: merchant.credential.accountNumber ?? null,
+      bankBin: merchant.credential.bankBin ?? null,
+      bankName: merchant.credential.bankName ?? null,
+    };
   } catch {
     return null;
   }

@@ -117,7 +117,8 @@ export async function generateQR(params: {
     if (!isSuccessResponse(result) || !result.data?.qrCode || !result.data?.qrCodeImage) {
       throw new TingeeConnectionError(`QR generation failed: ${result?.message}`);
     }
-    const qrImageUrl = `data:image/png;base64,${result.data.qrCodeImage}`;
+    const raw = result.data.qrCodeImage as string;
+    const qrImageUrl = raw.startsWith("data:") ? raw : `data:image/png;base64,${raw}`;
     return { qrCode: result.data.qrCode, qrImageUrl };
   } catch (error) {
     if (error instanceof TingeeConnectionError) throw error;
