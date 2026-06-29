@@ -13,15 +13,19 @@ vi.mock("../services/tingee.server", () => ({
 vi.mock("../lib/logger.server", () => ({
   sanitizeForLog: vi.fn((obj) => obj),
 }));
+vi.mock("../services/payment.server", () => ({
+  reconcileWebhookPayment: vi.fn(),
+}));
 
 import { action } from "./webhooks.tingee";
 import { webhookRateLimiter } from "../lib/rateLimit.server";
 import { getDecryptedCredential } from "../services/credential.server";
 import { verifyWebhookHMAC } from "../services/tingee.server";
 import { sanitizeForLog } from "../lib/logger.server";
+import { reconcileWebhookPayment } from "../services/payment.server";
 
 const SHOP = "test.myshopify.com";
-const VALID_BODY = JSON.stringify({ transactionCode: "TX123" });
+const VALID_BODY = JSON.stringify({ transactionCode: "TX123", amount: 1500000, content: "TINGEE 1001" });
 const DEFAULT_HEADERS = {
   "x-signature": "valid-sig",
   "x-request-timestamp": "20260629143052123",
@@ -49,6 +53,7 @@ describe("webhooks.tingee action", () => {
     vi.mocked(webhookRateLimiter.isRateLimited).mockReturnValue(false);
     vi.mocked(getDecryptedCredential).mockResolvedValue({ clientId: "cid", secretToken: "secret" });
     vi.mocked(verifyWebhookHMAC).mockReturnValue(true);
+    vi.mocked(reconcileWebhookPayment).mockResolvedValue({ type: "skip" });
   });
 
   it("returns 200 for valid HMAC and credential found", async () => {
@@ -108,5 +113,49 @@ describe("webhooks.tingee action", () => {
     const headersWithoutTs = { "x-signature": "sig", "content-type": "application/json" };
     const res = await action(makeRequest(SHOP, headersWithoutTs));
     expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for malformed payload — no transactionCode", async () => {
+    const res = await action(makeRequest(SHOP, DEFAULT_HEADERS, JSON.stringify({ amount: 1500000 })));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for malformed payload — non-numeric amount", async () => {
+    const res = await action(makeRequest(SHOP, DEFAULT_HEADERS, JSON.stringify({ transactionCode: "TX1", amount: "not-a-number" })));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 200 when reconcile returns { type: 'skip' }", async () => {
+    vi.mocked(reconcileWebhookPayment).mockResolvedValue({ type: "skip" });
+    const res = await action(makeRequest());
+    expect(res.status).toBe(200);
+  });
+
+  it("returns 200 when reconcile returns { type: 'no_payment_found' }", async () => {
+    vi.mocked(reconcileWebhookPayment).mockResolvedValue({ type: "no_payment_found" });
+    const res = await action(makeRequest());
+    expect(res.status).toBe(200);
+  });
+
+  it("returns 200 when reconcile returns { type: 'invalid_transition' }", async () => {
+    vi.mocked(reconcileWebhookPayment).mockResolvedValue({ type: "invalid_transition" });
+    const res = await action(makeRequest());
+    expect(res.status).toBe(200);
+  });
+
+  it("returns 200 when reconcile returns { type: 'amount_mismatch' }", async () => {
+    vi.mocked(reconcileWebhookPayment).mockResolvedValue({ type: "amount_mismatch" });
+    const res = await action(makeRequest());
+    expect(res.status).toBe(200);
+  });
+
+  it("returns 200 when reconcile returns { type: 'amount_matched' } (Story 3.3 placeholder)", async () => {
+    vi.mocked(reconcileWebhookPayment).mockResolvedValue({
+      type: "amount_matched",
+      payment: { id: "pay_01", orderId: "gid://shopify/Order/1", amount: 1500000 },
+      idempotencyKey: "tingee:TX123",
+    });
+    const res = await action(makeRequest());
+    expect(res.status).toBe(200);
   });
 });

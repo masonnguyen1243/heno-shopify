@@ -3,6 +3,7 @@ import { webhookRateLimiter } from "../lib/rateLimit.server";
 import { sanitizeForLog } from "../lib/logger.server";
 import { verifyWebhookHMAC } from "../services/tingee.server";
 import { getDecryptedCredential } from "../services/credential.server";
+import { reconcileWebhookPayment, type TingeeWebhookPayload } from "../services/payment.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   // Step 1 — Rate limit
@@ -52,6 +53,30 @@ export async function action({ request }: ActionFunctionArgs) {
     return new Response(null, { status: 400 });
   }
 
-  // Step 8 — Return 200 (Story 3.2 adds idempotency + reconciliation here)
-  return new Response(null, { status: 200 });
+  // Step 8 — Parse payload as typed Tingee webhook
+  const payload = _payload as TingeeWebhookPayload;
+  if (
+    !payload.transactionCode ||
+    !payload.transactionCode.trim() ||
+    typeof payload.amount !== "number" ||
+    typeof payload.content !== "string"
+  ) {
+    return new Response(null, { status: 400 });
+  }
+
+  // Step 9 — Reconcile payment (idempotency + amount match)
+  const reconResult = await reconcileWebhookPayment({ shopDomain, payload });
+
+  switch (reconResult.type) {
+    case "skip":
+    case "no_payment_found":
+    case "invalid_transition":
+    case "amount_mismatch":
+      return new Response(null, { status: 200 });
+    case "amount_matched":
+      // Story 3.3 implements markOrderPaid + SUCCESS state + retry logic HERE
+      // Payment is in PROCESSING state, ProcessedWebhook is PENDING
+      // IMPORTANT: Deploy Story 3.2 and 3.3 together — do not deploy 3.2 alone in production
+      return new Response(null, { status: 200 });
+  }
 }

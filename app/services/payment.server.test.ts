@@ -15,8 +15,22 @@ vi.mock("../db.server", () => ({
     payment: {
       findFirst: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
   },
+}));
+
+vi.mock("../lib/idempotency.server", () => ({
+  insertIdempotencyRecord: vi.fn(),
+  updateIdempotencyStatus: vi.fn(),
+}));
+
+vi.mock("../lib/paymentStateMachine", () => ({
+  assertValidTransition: vi.fn(),
+}));
+
+vi.mock("./order.server", () => ({
+  addOrderNote: vi.fn(),
 }));
 
 vi.mock("./credential.server", () => ({
@@ -53,10 +67,13 @@ vi.mock("../lib/env.server", () => ({
   env: { TINGEE_SDK_TIMEOUT_MS: 4000 },
 }));
 
-import { createPaymentData } from "./payment.server";
+import { createPaymentData, reconcileWebhookPayment, type TingeeWebhookPayload } from "./payment.server";
 import { getDecryptedCredential } from "./credential.server";
 import { generateQR, generateDeeplink, TingeeConnectionError } from "./tingee.server";
 import db from "../db.server";
+import { insertIdempotencyRecord, updateIdempotencyStatus } from "../lib/idempotency.server";
+import { assertValidTransition } from "../lib/paymentStateMachine";
+import { addOrderNote } from "./order.server";
 
 const mockParams = {
   shopDomain: "test.myshopify.com",
@@ -103,6 +120,7 @@ describe("createPaymentData", () => {
   it("returns existing non-expired Payment without calling Tingee", async () => {
     const existingPayment = {
       orderId: mockParams.orderId,
+      orderNumber: mockParams.orderNumber,
       shopDomain: mockParams.shopDomain,
       status: "PENDING",
       qrImageUrl: "data:image/png;base64,EXISTING",
@@ -123,6 +141,7 @@ describe("createPaymentData", () => {
   it("returns expired payment data without regenerating", async () => {
     const expiredPayment = {
       orderId: mockParams.orderId,
+      orderNumber: mockParams.orderNumber,
       shopDomain: mockParams.shopDomain,
       status: "EXPIRED",
       qrImageUrl: "data:image/png;base64,EXPIRED",
@@ -155,6 +174,7 @@ describe("createPaymentData", () => {
     vi.mocked(generateDeeplink).mockResolvedValue("tingee://pay?abc");
     vi.mocked(db.payment.create).mockResolvedValue({
       orderId: mockParams.orderId,
+      orderNumber: mockParams.orderNumber,
       shopDomain: mockParams.shopDomain,
       status: "PENDING",
       qrImageUrl: mockQrResult.qrImageUrl,
@@ -181,6 +201,7 @@ describe("createPaymentData", () => {
     vi.mocked(generateDeeplink).mockResolvedValue(null);
     vi.mocked(db.payment.create).mockResolvedValue({
       orderId: mockParams.orderId,
+      orderNumber: mockParams.orderNumber,
       shopDomain: mockParams.shopDomain,
       status: "PENDING",
       qrImageUrl: mockQrResult.qrImageUrl,
@@ -247,5 +268,121 @@ describe("createPaymentData", () => {
     const ms = capturedExpiresAt!.getTime();
     expect(ms).toBeGreaterThanOrEqual(before + 15 * 60 * 1000 - 100);
     expect(ms).toBeLessThanOrEqual(after + 15 * 60 * 1000 + 100);
+  });
+});
+
+const makeValidPayload = (overrides = {}): TingeeWebhookPayload => ({
+  transactionCode: "TX_TEST_123",
+  amount: 1500000,
+  content: "TINGEE 1001",
+  ...overrides,
+});
+
+const mockPaymentRecord = {
+  id: "pay_01",
+  orderId: "gid://shopify/Order/12345",
+  orderNumber: "1001",
+  shopDomain: "test.myshopify.com",
+  status: "PENDING" as const,
+  amount: 1500000,
+  qrImageUrl: "data:image/png;base64,QR",
+  deeplinkUrl: null,
+  expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+describe("reconcileWebhookPayment", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns { type: 'skip' } on duplicate idempotency key — no DB payment query", async () => {
+    vi.mocked(insertIdempotencyRecord).mockResolvedValue("duplicate");
+    const result = await reconcileWebhookPayment({ shopDomain: "test.myshopify.com", payload: makeValidPayload() });
+    expect(result).toEqual({ type: "skip" });
+    expect(db.payment.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("returns { type: 'no_payment_found' } when content cannot be parsed", async () => {
+    vi.mocked(insertIdempotencyRecord).mockResolvedValue("inserted");
+    vi.mocked(updateIdempotencyStatus).mockResolvedValue();
+    const result = await reconcileWebhookPayment({
+      shopDomain: "test.myshopify.com",
+      payload: makeValidPayload({ content: "INVALID CONTENT FORMAT EXTRA" }),
+    });
+    expect(result).toEqual({ type: "no_payment_found" });
+    expect(updateIdempotencyStatus).toHaveBeenCalledWith("tingee:TX_TEST_123", "FAILED");
+    expect(db.payment.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("returns { type: 'no_payment_found' } when no Payment record found", async () => {
+    vi.mocked(insertIdempotencyRecord).mockResolvedValue("inserted");
+    vi.mocked(db.payment.findFirst).mockResolvedValue(null);
+    vi.mocked(updateIdempotencyStatus).mockResolvedValue();
+    const result = await reconcileWebhookPayment({ shopDomain: "test.myshopify.com", payload: makeValidPayload() });
+    expect(result).toEqual({ type: "no_payment_found" });
+    expect(updateIdempotencyStatus).toHaveBeenCalledWith("tingee:TX_TEST_123", "FAILED");
+  });
+
+  it("returns { type: 'invalid_transition' } when Payment is in terminal state", async () => {
+    vi.mocked(insertIdempotencyRecord).mockResolvedValue("inserted");
+    vi.mocked(db.payment.findFirst).mockResolvedValue({ ...mockPaymentRecord, status: "SUCCESS" } as any);
+    vi.mocked(assertValidTransition).mockImplementation(() => { throw new Error("Invalid payment transition: SUCCESS → PROCESSING"); });
+    vi.mocked(updateIdempotencyStatus).mockResolvedValue();
+    const result = await reconcileWebhookPayment({ shopDomain: "test.myshopify.com", payload: makeValidPayload() });
+    expect(result).toEqual({ type: "invalid_transition" });
+    expect(updateIdempotencyStatus).toHaveBeenCalledWith("tingee:TX_TEST_123", "COMPLETED");
+  });
+
+  it("returns { type: 'amount_mismatch' } and calls addOrderNote with correct message", async () => {
+    vi.mocked(insertIdempotencyRecord).mockResolvedValue("inserted");
+    vi.mocked(db.payment.findFirst).mockResolvedValue(mockPaymentRecord as any);
+    vi.mocked(assertValidTransition).mockReturnValue(undefined);
+    vi.mocked(db.payment.update).mockResolvedValue({} as any);
+    vi.mocked(updateIdempotencyStatus).mockResolvedValue();
+    vi.mocked(addOrderNote).mockResolvedValue();
+    const result = await reconcileWebhookPayment({
+      shopDomain: "test.myshopify.com",
+      payload: makeValidPayload({ amount: 999999 }),
+    });
+    expect(result).toEqual({ type: "amount_mismatch" });
+    expect(db.payment.update).toHaveBeenCalledWith(expect.objectContaining({ data: { status: "FAILED" } }));
+    expect(updateIdempotencyStatus).toHaveBeenCalledWith("tingee:TX_TEST_123", "COMPLETED");
+    expect(addOrderNote).toHaveBeenCalledWith(
+      "test.myshopify.com",
+      "gid://shopify/Order/12345",
+      "Tingee received 999999 VND, expected 1500000 VND — manual review required"
+    );
+  });
+
+  it("returns { type: 'amount_mismatch' } even when addOrderNote throws", async () => {
+    vi.mocked(insertIdempotencyRecord).mockResolvedValue("inserted");
+    vi.mocked(db.payment.findFirst).mockResolvedValue(mockPaymentRecord as any);
+    vi.mocked(assertValidTransition).mockReturnValue(undefined);
+    vi.mocked(db.payment.update).mockResolvedValue({} as any);
+    vi.mocked(updateIdempotencyStatus).mockResolvedValue();
+    vi.mocked(addOrderNote).mockRejectedValue(new Error("Shopify down"));
+    const result = await reconcileWebhookPayment({
+      shopDomain: "test.myshopify.com",
+      payload: makeValidPayload({ amount: 1 }),
+    });
+    expect(result).toEqual({ type: "amount_mismatch" });
+  });
+
+  it("returns { type: 'amount_matched' } and updates Payment to PROCESSING on exact match", async () => {
+    vi.mocked(insertIdempotencyRecord).mockResolvedValue("inserted");
+    vi.mocked(db.payment.findFirst).mockResolvedValue(mockPaymentRecord as any);
+    vi.mocked(assertValidTransition).mockReturnValue(undefined);
+    vi.mocked(db.payment.update).mockResolvedValue({} as any);
+    vi.mocked(updateIdempotencyStatus).mockResolvedValue();
+    const result = await reconcileWebhookPayment({ shopDomain: "test.myshopify.com", payload: makeValidPayload() });
+    expect(result).toEqual({
+      type: "amount_matched",
+      payment: { id: "pay_01", orderId: "gid://shopify/Order/12345", amount: 1500000 },
+      idempotencyKey: "tingee:TX_TEST_123",
+    });
+    expect(db.payment.update).toHaveBeenCalledWith(expect.objectContaining({ data: { status: "PROCESSING" } }));
+    expect(updateIdempotencyStatus).toHaveBeenCalledWith("tingee:TX_TEST_123", "AWAITING_MARK_PAID");
   });
 });

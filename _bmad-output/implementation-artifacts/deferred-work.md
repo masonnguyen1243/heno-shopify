@@ -1,4 +1,9 @@
 
+## Deferred from: code review of 3-2-payment-reconciliation-and-idempotency (2026-06-29)
+
+- Race condition: two different transactionCodes for the same order can both pass idempotency guard and both update Payment PENDING → PROCESSING — requires DB-level atomic compare-and-swap (`UPDATE payments SET status='PROCESSING' WHERE id=? AND status='PENDING'` with row-count check); architectural gap, fix when hardening concurrent webhook delivery
+- Sentry not integrated: AC#2 and AC#5 specify Sentry logging for invalid_transition and no_payment_found; currently uses console.warn/error with TODO comments; requires adding @sentry/node to the project
+
 ## Deferred from: code review of 3-1-tingee-webhook-endpoint-and-hmac-validation (2026-06-29)
 
 - Rate limiter trusts attacker-controlled `x-forwarded-for` — pre-existing pattern matching `pollingRateLimiter`; revisit when hardening auth boundary or adding IP allowlist for Tingee egress
