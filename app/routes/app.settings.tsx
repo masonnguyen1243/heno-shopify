@@ -69,16 +69,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // intent === "save": save credentials + selected account
   const accountNumber = String(formData.get("accountNumber") ?? "").trim();
+  const vaAccountNumber = String(formData.get("vaAccountNumber") ?? "").trim();
   const bankBin = String(formData.get("bankBin") ?? "").trim();
   const bankName = String(formData.get("bankName") ?? "").trim();
 
-  if (!accountNumber || !bankBin) {
+  if (!accountNumber || !vaAccountNumber || !bankBin) {
     return { error: "MISSING_ACCOUNT" };
   }
 
   try {
     await verifyCredentials(clientId, secretToken);
-    await saveCredential(shop, clientId, secretToken, { accountNumber, bankBin, bankName });
+    await saveCredential(shop, clientId, secretToken, { accountNumber, vaAccountNumber, bankBin, bankName });
   } catch (error) {
     if (error instanceof InvalidCredentialsError) {
       return { error: "INVALID_CREDENTIALS" };

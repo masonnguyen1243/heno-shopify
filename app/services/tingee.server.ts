@@ -22,6 +22,7 @@ export class TingeeConnectionError extends Error {
 
 export type TingeeBankAccount = {
   accountNumber: string;
+  vaAccountNumber: string;
   bankBin: string;
   bankName: string;
   accountName: string;
@@ -50,9 +51,10 @@ export async function fetchTingeeAccounts(
     }
 
     return (vaItems as any[])
-      .filter((va) => va.accountNumber && va.bankBin)
+      .filter((va) => va.vaAccountNumber && va.bankBin)
       .map((va) => ({
         accountNumber: va.accountNumber as string,
+        vaAccountNumber: va.vaAccountNumber as string,
         bankBin: va.bankBin as string,
         bankName: va.bankName ?? "",
         accountName: va.accountName ?? "",

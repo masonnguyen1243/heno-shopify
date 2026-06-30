@@ -29,6 +29,7 @@ interface CredentialFormProps {
 
 type TingeeBankAccount = {
   accountNumber: string;
+  vaAccountNumber: string;
   bankBin: string;
   bankName: string;
   accountName: string;
@@ -224,6 +225,7 @@ export function CredentialForm({ hasCredential, savedAccount }: CredentialFormPr
                 <input type="hidden" name="clientId" value={clientId} />
                 <input type="hidden" name="secretToken" value={secretToken} />
                 <input type="hidden" name="accountNumber" value={selectedAccount?.accountNumber ?? ""} />
+                <input type="hidden" name="vaAccountNumber" value={selectedAccount?.vaAccountNumber ?? ""} />
                 <input type="hidden" name="bankBin" value={selectedAccount?.bankBin ?? ""} />
                 <input type="hidden" name="bankName" value={selectedAccount?.bankName ?? ""} />
                 <BlockStack gap="400">

@@ -43,7 +43,7 @@ export function PaymentCard({ orderId, amount, orderNumber, locale }: Props) {
   const getToken = useCallback(() => sessionToken.get(), [sessionToken]);
 
   const { status: polledStatus, showConnectionToast } = usePaymentStatus(
-    orderId,
+    loadState === "loaded" ? orderId : null,
     loadState === "loaded" ? (data?.status ?? null) : null,
     getToken,
     appUrl

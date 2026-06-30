@@ -37,7 +37,7 @@ export async function createPaymentData(params: {
       deeplinkUrl: existing.deeplinkUrl ?? null,
       amount: existing.amount,
       currency: "VND",
-      status: existing.status,
+      status: existing.status === "SUCCESS" ? "COMPLETED" : existing.status,
       expiresAt: existing.expiresAt.toISOString(),
       orderId: existing.orderId,
       orderNumber: existing.orderNumber,
@@ -52,19 +52,19 @@ export async function createPaymentData(params: {
     throw new Error(`Merchant has no Tingee credentials configured: ${sanitizeForLog({ shopDomain }).shopDomain}`);
   }
 
-  const { clientId, secretToken, accountNumber, bankBin, bankName } = credential;
+  const { clientId, secretToken, accountNumber, vaAccountNumber, bankBin, bankName } = credential;
 
-  if (!accountNumber || !bankBin) {
-    throw new Error(`Merchant bank account not configured: ${sanitizeForLog({ shopDomain }).shopDomain}`);
+  if (!vaAccountNumber || !bankBin) {
+    throw new Error(`Merchant VA account not configured: ${sanitizeForLog({ shopDomain }).shopDomain}`);
   }
 
-  // Generate QR (fatal if fails)
+  // Generate QR (fatal if fails) — must use vaAccountNumber so Tingee intercepts the transaction
   const { qrCode, qrImageUrl } = await generateQR({
     clientId,
     secretToken,
     amount,
     orderNumber,
-    accountNumber,
+    accountNumber: vaAccountNumber,
     bankBin,
   });
 
@@ -76,7 +76,7 @@ export async function createPaymentData(params: {
     bankBin,
     destinationBankBin: bankBin,
     accountName: bankName ?? "",
-    accountNumber,
+    accountNumber: vaAccountNumber,
     amount,
     content: `TINGEE ${orderNumber}`,
     billNumber: orderNumber,

@@ -4,6 +4,10 @@ import { sanitizeForLog } from "../lib/logger.server";
 import { verifyWebhookHMAC } from "../services/tingee.server";
 import { getDecryptedCredential } from "../services/credential.server";
 import { reconcileWebhookPayment, type TingeeWebhookPayload } from "../services/payment.server";
+import { markOrderPaid, ShopifyMarkPaidError } from "../services/order.server";
+import { assertValidTransition } from "../lib/paymentStateMachine";
+import { updateIdempotencyStatus } from "../lib/idempotency.server";
+import db from "../db.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   // Step 1 — Rate limit
@@ -73,10 +77,56 @@ export async function action({ request }: ActionFunctionArgs) {
     case "invalid_transition":
     case "amount_mismatch":
       return new Response(null, { status: 200 });
-    case "amount_matched":
-      // Story 3.3 implements markOrderPaid + SUCCESS state + retry logic HERE
-      // Payment is in PROCESSING state, ProcessedWebhook is PENDING
-      // IMPORTANT: Deploy Story 3.2 and 3.3 together — do not deploy 3.2 alone in production
-      return new Response(null, { status: 200 });
+    case "amount_matched": {
+      const startTime = Date.now();
+      const { payment, idempotencyKey } = reconResult;
+
+      try {
+        const { retryCount } = await markOrderPaid(shopDomain, payment.orderId);
+
+        // AC #5: Success — transition PROCESSING → SUCCESS
+        assertValidTransition("PROCESSING", "SUCCESS");
+        await db.payment.update({ where: { id: payment.id }, data: { status: "SUCCESS" } });
+        try { await updateIdempotencyStatus(idempotencyKey, "COMPLETED"); } catch { /* best-effort */ }
+
+        // AC #6: Emit metrics to Fly.io logs
+        console.info("[METRIC] webhook.processing_time", sanitizeForLog({ processingTimeMs: Date.now() - startTime }));
+        console.info("[METRIC] webhook.retry_count", sanitizeForLog({ retryCount }));
+        // TODO: tingee.api.response_time metric belongs in services/tingee.server.ts — not in scope for Story 3.3
+
+        return new Response(null, { status: 200 });
+
+      } catch (error) {
+        // AC #4: Permanent failure — transition to FAILED
+        const retryCount = error instanceof ShopifyMarkPaidError ? error.retryCount : 0;
+        const httpStatus = error instanceof ShopifyMarkPaidError ? error.httpStatus : undefined;
+
+        // Update DB — best-effort; do not throw even if these fail
+        await db.payment.update({ where: { id: payment.id }, data: { status: "FAILED" } }).catch(() => {});
+        try { await updateIdempotencyStatus(idempotencyKey, "FAILED"); } catch { /* best-effort */ }
+
+        // AC #4: Log full context for manual recovery
+        console.error(
+          "[WEBHOOK] markOrderPaid permanent failure",
+          sanitizeForLog({
+            shopDomain,
+            orderId: payment.orderId,
+            transactionCode: payload.transactionCode,
+            retryCount,
+            httpStatus,
+            errorMessage: error instanceof Error ? error.message : String(error),
+          }),
+        );
+        // Recovery: manually DELETE FROM processed_webhooks WHERE idempotency_key='tingee:{transactionCode}'
+        // then re-fire the webhook from Tingee dashboard to retry.
+
+        // AC #6: Emit metrics even on failure
+        console.info("[METRIC] webhook.processing_time", sanitizeForLog({ processingTimeMs: Date.now() - startTime }));
+        console.info("[METRIC] webhook.retry_count", sanitizeForLog({ retryCount }));
+
+        // AC #3/#4: Always return 200 — prevents Tingee from retrying a permanently failed order
+        return new Response(null, { status: 200 });
+      }
+    }
   }
 }

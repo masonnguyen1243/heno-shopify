@@ -102,8 +102,13 @@ export function usePaymentStatus(
 
       const httpStatus = (err as { status?: number })?.status;
       if (httpStatus !== undefined && httpStatus >= 400 && httpStatus < 500 && httpStatus !== 429) {
-        try { if (orderId) sessionStorage.removeItem(`tng_payment_${orderId}`); } catch {}
-        return;
+        // 404 on the first 3 polls may be a startup race where the payment record is still
+        // being created by the concurrent fetchTingeeData call — allow retries before giving up.
+        const isEarly404 = httpStatus === 404 && consecutiveFailuresRef.current < 3;
+        if (!isEarly404) {
+          try { if (orderId) sessionStorage.removeItem(`tng_payment_${orderId}`); } catch {}
+          return;
+        }
       }
 
       consecutiveFailuresRef.current++;

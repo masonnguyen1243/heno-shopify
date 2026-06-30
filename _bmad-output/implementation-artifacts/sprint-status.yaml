@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-06-22T03:00:00.000Z"
-last_updated: "2026-06-29T17:00:00.000Z"
+last_updated: "2026-06-30T10:11:00.000Z"
 project: Tingee-Shopify-App
 project_key: NOKEY
 tracking_system: file-system
@@ -66,5 +66,5 @@ development_status:
   epic-3: in-progress
   3-1-tingee-webhook-endpoint-and-hmac-validation: done
   3-2-payment-reconciliation-and-idempotency: done
-  3-3-shopify-order-update-retry-mechanism-and-monitoring: backlog
+  3-3-shopify-order-update-retry-mechanism-and-monitoring: done
   epic-3-retrospective: optional

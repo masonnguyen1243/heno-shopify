@@ -1,4 +1,11 @@
 
+## Deferred from: code review of 3-3-shopify-order-update-retry-mechanism-and-monitoring (2026-06-30)
+
+- Stale admin session after 14s retry window: `unauthenticated.admin(shopDomain)` called once before retry loop; session may expire during backoffs (1s+3s+10s); retry with stale token will fail — revisit when hardening auth boundary
+- RETRY_DELAYS_MS array not bounds-checked against MAX_ATTEMPTS: if MAX_ATTEMPTS is ever increased beyond 4 without extending RETRY_DELAYS_MS, setTimeout fires with undefined (0ms delay) — add guard if constants ever change
+- reconcileWebhookPayment throw before amount_matched dispatch not caught: if payment.server.ts throws (DB failure after inserting idempotency record), route returns 500 and Tingee retries — subsequent retry hits P2002 duplicate path and skips; payment stuck permanently
+- updateIdempotencyStatus failure in success path leaves ProcessedWebhook stuck in AWAITING_MARK_PAID: best-effort design accepted per Prior Story Learnings; no alerting path for stuck records — add monitoring query when observability tooling is in place
+
 ## Deferred from: code review of 3-2-payment-reconciliation-and-idempotency (2026-06-29)
 
 - Race condition: two different transactionCodes for the same order can both pass idempotency guard and both update Payment PENDING → PROCESSING — requires DB-level atomic compare-and-swap (`UPDATE payments SET status='PROCESSING' WHERE id=? AND status='PENDING'` with row-count check); architectural gap, fix when hardening concurrent webhook delivery

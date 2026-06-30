@@ -7,7 +7,7 @@ export async function saveCredential(
   shop: string,
   clientId: string,
   secretToken: string,
-  account?: { accountNumber: string; bankBin: string; bankName: string }
+  account?: { accountNumber: string; vaAccountNumber: string; bankBin: string; bankName: string }
 ): Promise<void> {
   const merchant = await db.merchant.findUnique({
     where: { shopDomain: shop },
@@ -24,6 +24,7 @@ export async function saveCredential(
     keyVersion: 1,
     ...(account && {
       accountNumber: account.accountNumber,
+      vaAccountNumber: account.vaAccountNumber,
       bankBin: account.bankBin,
       bankName: account.bankName,
     }),
@@ -51,6 +52,7 @@ export async function getDecryptedCredential(
   clientId: string;
   secretToken: string;
   accountNumber: string | null;
+  vaAccountNumber: string | null;
   bankBin: string | null;
   bankName: string | null;
 } | null> {
@@ -66,6 +68,7 @@ export async function getDecryptedCredential(
       clientId,
       secretToken,
       accountNumber: merchant.credential.accountNumber ?? null,
+      vaAccountNumber: merchant.credential.vaAccountNumber ?? null,
       bankBin: merchant.credential.bankBin ?? null,
       bankName: merchant.credential.bankName ?? null,
     };

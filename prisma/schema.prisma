@@ -47,6 +47,7 @@ model MerchantCredential {
   encryptedClientId    String   @map("encrypted_client_id")
   encryptedSecretToken String   @map("encrypted_secret_token")
   accountNumber        String?  @map("account_number")
+  vaAccountNumber      String?  @map("va_account_number")
   bankBin              String?  @map("bank_bin")
   bankName             String?  @map("bank_name")
   keyVersion           Int      @default(1) @map("key_version")
