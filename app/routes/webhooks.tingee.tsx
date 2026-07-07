@@ -89,7 +89,7 @@ export async function action({ request }: ActionFunctionArgs) {
         await db.payment.update({ where: { id: payment.id }, data: { status: "SUCCESS" } });
         try { await updateIdempotencyStatus(idempotencyKey, "COMPLETED"); } catch { /* best-effort */ }
 
-        // AC #6: Emit metrics to Fly.io logs
+        // AC #6: Emit metrics to platform logs
         console.info("[METRIC] webhook.processing_time", sanitizeForLog({ processingTimeMs: Date.now() - startTime }));
         console.info("[METRIC] webhook.retry_count", sanitizeForLog({ retryCount }));
         // TODO: tingee.api.response_time metric belongs in services/tingee.server.ts — not in scope for Story 3.3
