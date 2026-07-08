@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { CountdownTimer } from "./CountdownTimer";
 
 vi.mock("../hooks/useCountdown", () => ({
@@ -20,42 +20,33 @@ beforeEach(() => {
 });
 
 describe("CountdownTimer", () => {
-  it("renders '15:00' when secondsLeft=900", () => {
+  it("renders '15:00' digital format with Vietnamese label when secondsLeft=900", () => {
     vi.mocked(useCountdown).mockReturnValue({ secondsLeft: 900, isExpired: false });
-    render(<CountdownTimer {...defaultProps} />);
-    expect(screen.getByText("15:00")).toBeTruthy();
+    const { container } = render(<CountdownTimer {...defaultProps} />);
+    expect(container.querySelector("text")?.textContent).toBe(
+      "Còn lại: 15 phút 0 giây — 15:00"
+    );
   });
 
-  it("renders '01:01' when secondsLeft=61", () => {
+  it("renders '01:01' digital format when secondsLeft=61", () => {
     vi.mocked(useCountdown).mockReturnValue({ secondsLeft: 61, isExpired: false });
-    render(<CountdownTimer {...defaultProps} />);
-    expect(screen.getByText("01:01")).toBeTruthy();
+    const { container } = render(<CountdownTimer {...defaultProps} />);
+    expect(container.querySelector("text")?.textContent).toBe(
+      "Còn lại: 1 phút 1 giây — 01:01"
+    );
+  });
+
+  it("renders English label when locale is 'en'", () => {
+    vi.mocked(useCountdown).mockReturnValue({ secondsLeft: 900, isExpired: false });
+    const { container } = render(<CountdownTimer {...defaultProps} locale="en" />);
+    expect(container.querySelector("text")?.textContent).toBe(
+      "Expires in: 15m 0s — 15:00"
+    );
   });
 
   it("renders nothing when isExpired=true", () => {
     vi.mocked(useCountdown).mockReturnValue({ secondsLeft: 0, isExpired: true });
     const { container } = render(<CountdownTimer {...defaultProps} />);
-    expect(container.querySelector("p")).toBeNull();
-  });
-
-  it("has aria-live='off' on the p element", () => {
-    vi.mocked(useCountdown).mockReturnValue({ secondsLeft: 900, isExpired: false });
-    const { container } = render(<CountdownTimer {...defaultProps} />);
-    const p = container.querySelector("p");
-    expect(p?.getAttribute("aria-live")).toBe("off");
-  });
-
-  it("aria-label contains 'Thời gian còn lại' for locale 'vi'", () => {
-    vi.mocked(useCountdown).mockReturnValue({ secondsLeft: 900, isExpired: false });
-    render(<CountdownTimer {...defaultProps} locale="vi" />);
-    const p = screen.getByText("15:00");
-    expect(p.getAttribute("aria-label")).toContain("Thời gian còn lại");
-  });
-
-  it("aria-label contains 'Time remaining' for locale 'en'", () => {
-    vi.mocked(useCountdown).mockReturnValue({ secondsLeft: 900, isExpired: false });
-    render(<CountdownTimer {...defaultProps} locale="en" />);
-    const p = screen.getByText("15:00");
-    expect(p.getAttribute("aria-label")).toContain("Time remaining");
+    expect(container.querySelector("text")).toBeNull();
   });
 });

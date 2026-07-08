@@ -64,6 +64,10 @@ describe("getDecryptedCredential", () => {
     expect(result).toEqual({
       clientId: "my-client-id",
       secretToken: "my-secret",
+      accountNumber: null,
+      vaAccountNumber: null,
+      bankBin: null,
+      bankName: null,
     });
     expect(decrypt).toHaveBeenCalledTimes(2);
   });

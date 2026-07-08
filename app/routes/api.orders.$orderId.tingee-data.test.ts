@@ -34,6 +34,7 @@ import { TingeeConnectionError } from "../services/tingee.server";
 function mockCheckoutAuth(shopDomain = "test.myshopify.com") {
   vi.mocked(authenticate.public.checkout).mockResolvedValue({
     sessionToken: { dest: `https://${shopDomain}` },
+    cors: vi.fn((response: Response) => response),
   } as any);
 }
 
@@ -80,7 +81,13 @@ describe("GET /api/orders/:orderId/tingee-data", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data).toEqual(paymentData);
+    // The route proxies qrImageUrl through its own /qr-image endpoint rather
+    // than passing through the raw data URI from createPaymentData.
+    expect(data).toEqual({
+      ...paymentData,
+      qrImageUrl:
+        "https://test.myshopify.com/api/orders/gid%3A%2F%2Fshopify%2FOrder%2F123/qr-image",
+    });
   });
 
   it("returns 400 when orderId is missing", async () => {
@@ -182,6 +189,7 @@ describe("GET /api/orders/:orderId/tingee-data", () => {
     // Different shop in session vs URL
     vi.mocked(authenticate.public.checkout).mockResolvedValue({
       sessionToken: { dest: "https://real-shop.myshopify.com" },
+      cors: vi.fn((response: Response) => response),
     } as any);
     vi.mocked(createPaymentData).mockResolvedValue({
       qrImageUrl: "data:image/png;base64,X",

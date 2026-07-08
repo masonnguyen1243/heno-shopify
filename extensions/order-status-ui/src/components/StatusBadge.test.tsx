@@ -4,23 +4,16 @@ import { render, screen } from "@testing-library/react";
 import { StatusBadge } from "./StatusBadge";
 
 describe("StatusBadge", () => {
-  it("renders 'Đã thanh toán ✓' with paid class for COMPLETED", () => {
+  it("renders 'Đã thanh toán ✓' with success tone for COMPLETED", () => {
     const { container } = render(<StatusBadge status="COMPLETED" locale="vi" />);
     expect(screen.getByText("Đã thanh toán ✓")).toBeTruthy();
-    expect(container.querySelector(".tng-status-badge--paid")).not.toBeNull();
+    expect(container.querySelector("badge")?.getAttribute("tone")).toBe("success");
   });
 
-  it("renders 'Chờ thanh toán' with pending class for PENDING", () => {
+  it("renders 'Chờ thanh toán' with warning tone for PENDING", () => {
     const { container } = render(<StatusBadge status="PENDING" locale="vi" />);
     expect(screen.getByText("Chờ thanh toán")).toBeTruthy();
-    expect(container.querySelector(".tng-status-badge--pending")).not.toBeNull();
-  });
-
-  it("has aria-live='polite' on the container div", () => {
-    const { container } = render(<StatusBadge status="PENDING" locale="vi" />);
-    const wrapper = container.querySelector(".tng-status-badge-container");
-    expect(wrapper).not.toBeNull();
-    expect(wrapper?.getAttribute("aria-live")).toBe("polite");
+    expect(container.querySelector("badge")?.getAttribute("tone")).toBe("warning");
   });
 
   it("renders English text when locale is 'en'", () => {
@@ -33,14 +26,14 @@ describe("StatusBadge", () => {
     expect(screen.getByText("Awaiting payment")).toBeTruthy();
   });
 
-  it("renders EXPIRED badge", () => {
+  it("renders EXPIRED badge with critical tone", () => {
     const { container } = render(<StatusBadge status="EXPIRED" locale="vi" />);
     expect(screen.getByText("Mã QR đã hết hạn")).toBeTruthy();
-    expect(container.querySelector(".tng-status-badge--expired")).not.toBeNull();
+    expect(container.querySelector("badge")?.getAttribute("tone")).toBe("critical");
   });
 
-  it("renders FAILED using pending style (non-alarming)", () => {
+  it("renders FAILED using critical tone", () => {
     const { container } = render(<StatusBadge status="FAILED" locale="vi" />);
-    expect(container.querySelector(".tng-status-badge--pending")).not.toBeNull();
+    expect(container.querySelector("badge")?.getAttribute("tone")).toBe("critical");
   });
 });

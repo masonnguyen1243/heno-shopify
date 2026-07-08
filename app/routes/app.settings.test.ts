@@ -127,13 +127,26 @@ describe("Settings action", () => {
     vi.mocked(saveCredential).mockResolvedValueOnce(undefined);
 
     const result = await action(
-      makeActionArgs({ clientId: "id123", secretToken: "tok" })
+      makeActionArgs({
+        clientId: "id123",
+        secretToken: "tok",
+        accountNumber: "12345678",
+        vaAccountNumber: "VA12345678",
+        bankBin: "970436",
+        bankName: "Vietcombank",
+      })
     );
     expect(result).toEqual({ success: true });
     expect(saveCredential).toHaveBeenCalledWith(
       "test-store.myshopify.com",
       "id123",
-      "tok"
+      "tok",
+      {
+        accountNumber: "12345678",
+        vaAccountNumber: "VA12345678",
+        bankBin: "970436",
+        bankName: "Vietcombank",
+      }
     );
   });
 
@@ -150,7 +163,14 @@ describe("Settings action", () => {
     );
 
     const result = await action(
-      makeActionArgs({ clientId: "bad", secretToken: "bad" })
+      makeActionArgs({
+        clientId: "bad",
+        secretToken: "bad",
+        accountNumber: "12345678",
+        vaAccountNumber: "VA12345678",
+        bankBin: "970436",
+        bankName: "Vietcombank",
+      })
     );
     expect(result).toEqual({ error: "INVALID_CREDENTIALS" });
     expect(saveCredential).not.toHaveBeenCalled();
@@ -169,7 +189,14 @@ describe("Settings action", () => {
     );
 
     const result = await action(
-      makeActionArgs({ clientId: "id", secretToken: "tok" })
+      makeActionArgs({
+        clientId: "id",
+        secretToken: "tok",
+        accountNumber: "12345678",
+        vaAccountNumber: "VA12345678",
+        bankBin: "970436",
+        bankName: "Vietcombank",
+      })
     );
     expect(result).toEqual({ error: "TINGEE_TIMEOUT" });
     expect(saveCredential).not.toHaveBeenCalled();
@@ -248,11 +275,26 @@ describe("Settings action", () => {
     vi.mocked(verifyCredentials).mockResolvedValueOnce(undefined);
     vi.mocked(saveCredential).mockResolvedValueOnce(undefined);
 
-    await action(makeActionArgs({ clientId: "id", secretToken: "tok" }));
+    await action(
+      makeActionArgs({
+        clientId: "id",
+        secretToken: "tok",
+        accountNumber: "12345678",
+        vaAccountNumber: "VA12345678",
+        bankBin: "970436",
+        bankName: "Vietcombank",
+      })
+    );
     expect(saveCredential).toHaveBeenCalledWith(
       "test-store.myshopify.com",
       "id",
-      "tok"
+      "tok",
+      {
+        accountNumber: "12345678",
+        vaAccountNumber: "VA12345678",
+        bankBin: "970436",
+        bankName: "Vietcombank",
+      }
     );
   });
 });

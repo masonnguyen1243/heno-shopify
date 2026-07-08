@@ -30,6 +30,7 @@ import { pollingRateLimiter } from "../lib/rateLimit.server";
 function mockCheckoutAuth(shopDomain = "test.myshopify.com") {
   vi.mocked(authenticate.public.checkout).mockResolvedValue({
     sessionToken: { dest: `https://${shopDomain}` },
+    cors: vi.fn((response: Response) => response),
   } as any);
 }
 
@@ -277,6 +278,7 @@ describe("GET /api/orders/:orderId/payment-status", () => {
   it("IDOR: shop derived from sessionToken.dest, not query params", async () => {
     vi.mocked(authenticate.public.checkout).mockResolvedValue({
       sessionToken: { dest: "https://real-shop.myshopify.com" },
+      cors: vi.fn((response: Response) => response),
     } as any);
     vi.mocked(db.payment.findFirst).mockResolvedValue(
       makePayment({ shopDomain: "real-shop.myshopify.com" }) as any
@@ -297,6 +299,7 @@ describe("GET /api/orders/:orderId/payment-status", () => {
   it("returns 401 when sessionToken.dest is missing", async () => {
     vi.mocked(authenticate.public.checkout).mockResolvedValue({
       sessionToken: {},
+      cors: vi.fn((response: Response) => response),
     } as any);
 
     const response = await loader({
