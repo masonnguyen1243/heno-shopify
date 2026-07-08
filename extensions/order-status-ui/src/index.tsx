@@ -5,7 +5,6 @@ import {
   useLanguage,
   useTotalAmount,
 } from "@shopify/ui-extensions-react/checkout";
-import type { OrderConfirmationApi, StandardApi } from "@shopify/ui-extensions/checkout";
 import { PaymentCard } from "./components/PaymentCard";
 
 export default reactExtension(

@@ -74,6 +74,22 @@ module.exports = {
         "plugin:import/recommended",
         "plugin:import/typescript",
       ],
+      rules: {
+        "@typescript-eslint/no-unused-vars": [
+          "error",
+          { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+        ],
+      },
+    },
+
+    // Test files commonly cast mocked data with `any` (Prisma results, SDK
+    // responses, partial fixtures) — that's the standard, low-risk use of `any`
+    // in this codebase, so it's relaxed here rather than in production code.
+    {
+      files: ["**/*.test.{ts,tsx}"],
+      rules: {
+        "@typescript-eslint/no-explicit-any": "off",
+      },
     },
 
     // Node

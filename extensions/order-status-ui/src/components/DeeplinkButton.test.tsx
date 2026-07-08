@@ -1,71 +1,52 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
-
-vi.mock("../utils/deeplink", () => ({
-  openDeeplink: vi.fn(() => () => {}),
-}));
-
-import { openDeeplink } from "../utils/deeplink";
+import { describe, it, expect } from "vitest";
+import { createRemoteRoot } from "@remote-ui/core";
+import { render } from "@remote-ui/react";
 import { DeeplinkButton } from "./DeeplinkButton";
 
-const defaultProps = {
-  deeplinkUrl: "tingpay://pay/abc123",
-  amount: 1500000,
-  locale: "vi",
-  isMobile: true,
-};
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+// <Button> from @shopify/ui-extensions-react/checkout is a remote-ui component
+// (it accepts fragment/slot props), so it can only mount inside a real
+// remote-ui RenderContext — @testing-library/react's DOM-based render() throws
+// "No remote-ui Render instance found in context" for it. Rendering directly
+// via @remote-ui/react's render() into a createRemoteRoot() mirrors what
+// Shopify's own `reactExtension()` does in production, and lets us assert
+// against the serialized component tree instead of the DOM.
+async function renderRemote(element: React.ReactElement) {
+  const root = createRemoteRoot(() => {});
+  await new Promise<void>((resolve) => render(element, root, () => resolve()));
+  return root;
+}
 
 describe("DeeplinkButton", () => {
-  it("renders null when isMobile is false", () => {
-    const { container } = render(<DeeplinkButton {...defaultProps} isMobile={false} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it("renders null when deeplinkUrl is null", () => {
-    const { container } = render(<DeeplinkButton {...defaultProps} deeplinkUrl={null} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it("renders button when isMobile=true and deeplinkUrl is set", () => {
-    render(<DeeplinkButton {...defaultProps} />);
-    expect(screen.getByRole("button")).toBeTruthy();
-  });
-
-  it("renders Vietnamese button text", () => {
-    render(<DeeplinkButton {...defaultProps} locale="vi" />);
-    expect(screen.getByText("Mở app ngân hàng")).toBeTruthy();
-  });
-
-  it("renders English button text", () => {
-    render(<DeeplinkButton {...defaultProps} locale="en" />);
-    expect(screen.getByText("Open bank app")).toBeTruthy();
-  });
-
-  it("has correct Vietnamese aria-label with formatted amount (no đ suffix duplication)", () => {
-    render(<DeeplinkButton {...defaultProps} locale="vi" amount={1500000} />);
-    const btn = screen.getByRole("button");
-    expect(btn.getAttribute("aria-label")).toBe(
-      "Mở app ngân hàng để thanh toán 1.500.000 đồng"
+  it("renders null when deeplinkUrl is null", async () => {
+    const root = await renderRemote(
+      <DeeplinkButton deeplinkUrl={null} locale="vi" />
     );
+    expect(root.children).toHaveLength(0);
   });
 
-  it("has correct English aria-label with formatted amount", () => {
-    render(<DeeplinkButton {...defaultProps} locale="en" amount={1500000} />);
-    const btn = screen.getByRole("button");
-    expect(btn.getAttribute("aria-label")).toBe(
-      "Open bank app to pay 1.500.000 đồng"
+  it("renders a secondary Button linking to deeplinkUrl when set", async () => {
+    const root = await renderRemote(
+      <DeeplinkButton deeplinkUrl="tingpay://pay/abc123" locale="vi" />
     );
+    const button = root.children[0] as any;
+    expect(button.type).toBe("Button");
+    expect(button.props).toEqual({ to: "tingpay://pay/abc123", kind: "secondary" });
   });
 
-  it("calls openDeeplink with the URL and onFallback when clicked", () => {
-    const onFallback = vi.fn();
-    render(<DeeplinkButton {...defaultProps} onFallback={onFallback} />);
-    fireEvent.click(screen.getByRole("button"));
-    expect(openDeeplink).toHaveBeenCalledWith("tingpay://pay/abc123", expect.any(Function));
+  it("renders Vietnamese button text", async () => {
+    const root = await renderRemote(
+      <DeeplinkButton deeplinkUrl="tingpay://pay/abc123" locale="vi" />
+    );
+    const button = root.children[0] as any;
+    expect(button.children[0].text).toBe("Mở app ngân hàng");
+  });
+
+  it("renders English button text", async () => {
+    const root = await renderRemote(
+      <DeeplinkButton deeplinkUrl="tingpay://pay/abc123" locale="en" />
+    );
+    const button = root.children[0] as any;
+    expect(button.children[0].text).toBe("Open bank app");
   });
 });

@@ -3,7 +3,7 @@ import { Outlet, redirect, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { AppProvider as PolarisProvider } from "@shopify/polaris";
-// @ts-ignore — Polaris locale JSON has no .d.ts; Vite handles JSON imports natively
+// @ts-expect-error — Polaris locale JSON has no .d.ts; Vite handles JSON imports natively
 import enTranslations from "@shopify/polaris/locales/en.json";
 
 import { authenticate } from "../shopify.server";

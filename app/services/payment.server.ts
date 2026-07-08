@@ -1,7 +1,7 @@
 import db from "../db.server";
 import { sanitizeForLog } from "../lib/logger.server";
 import { getDecryptedCredential } from "./credential.server";
-import { generateQR, generateDeeplink, TingeeConnectionError } from "./tingee.server";
+import { generateQR, generateDeeplink } from "./tingee.server";
 import { insertIdempotencyRecord, updateIdempotencyStatus } from "../lib/idempotency.server";
 import { assertValidTransition } from "../lib/paymentStateMachine";
 import { addOrderNote } from "./order.server";
@@ -52,7 +52,7 @@ export async function createPaymentData(params: {
     throw new Error(`Merchant has no Tingee credentials configured: ${sanitizeForLog({ shopDomain }).shopDomain}`);
   }
 
-  const { clientId, secretToken, accountNumber, vaAccountNumber, bankBin, bankName } = credential;
+  const { clientId, secretToken, vaAccountNumber, bankBin, bankName } = credential;
 
   if (!vaAccountNumber || !bankBin) {
     throw new Error(`Merchant VA account not configured: ${sanitizeForLog({ shopDomain }).shopDomain}`);

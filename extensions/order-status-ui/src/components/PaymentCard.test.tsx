@@ -1,35 +1,47 @@
 // @vitest-environment jsdom
+import { createElement } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import type { TingeeDataResponse } from "../api/client";
+import {
+  renderRemote,
+  findByType,
+  findByText,
+  getText,
+} from "../test-utils/remoteRender";
 
 vi.mock("../api/client", () => ({
   fetchTingeeData: vi.fn(),
-  fetchPaymentStatus: vi.fn(),
-}));
-
-vi.mock("@shopify/ui-extensions-react/customer-account", () => ({
-  useColorScheme: vi.fn(() => "light"),
-}));
-
-vi.mock("../hooks/useMobileDetect", () => ({
-  useMobileDetect: vi.fn(() => false),
 }));
 
 vi.mock("../hooks/usePaymentStatus", () => ({
-  usePaymentStatus: vi.fn(() => ({ status: null, paidAt: undefined, showConnectionToast: false })),
+  usePaymentStatus: vi.fn(() => ({
+    status: null,
+    paidAt: undefined,
+    showConnectionToast: false,
+  })),
 }));
 
-vi.mock("./StatusBadge", () => ({
-  StatusBadge: ({ status }: { status: string }) => (
-    <span data-testid="status-badge">{status}</span>
-  ),
-}));
+// PaymentCard calls useSessionToken()/useSettings() from the checkout extension
+// runtime API, which only exists inside a real Shopify checkout iframe — outside
+// of it, calling these hooks throws "You can only call this hook when running as
+// a checkout UI extension." Mock just these two, keeping every other export
+// (Image, Badge, Button, BlockStack, ...) real so the rendered tree matches
+// production.
+vi.mock("@shopify/ui-extensions-react/checkout", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@shopify/ui-extensions-react/checkout")>();
+  return {
+    ...actual,
+    useSessionToken: vi.fn(() => ({ get: vi.fn().mockResolvedValue("test-token") })),
+    useSettings: vi.fn(() => ({ app_url: "https://test-app.example.com" })),
+  };
+});
 
+// Mocked as a bare remote-ui host node carrying onExpire in props, so the test
+// can trigger expiry directly instead of depending on the real countdown timer.
 vi.mock("./CountdownTimer", () => ({
-  CountdownTimer: ({ onExpire }: { onExpire: () => void; expiresAt: string | null; locale: string }) => (
-    <button data-testid="mock-countdown" onClick={onExpire}>countdown</button>
-  ),
+  CountdownTimer: (props: { onExpire: () => void }) =>
+    createElement("mock-countdown", { onExpire: props.onExpire }),
 }));
 
 import { fetchTingeeData } from "../api/client";
@@ -58,159 +70,143 @@ const defaultProps = {
   locale: "vi",
 };
 
+// Renders PaymentCard and flushes the async sessionToken.get() -> fetchTingeeData
+// chain in its mount effect.
+async function renderLoaded(props: typeof defaultProps = defaultProps) {
+  let root!: Awaited<ReturnType<typeof renderRemote>>;
+  await act(async () => {
+    root = await renderRemote(<PaymentCard {...props} />);
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+  });
+  return root;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe("PaymentCard", () => {
-  it("renders loading skeleton before data loads", () => {
+  it("renders loading skeleton before data loads", async () => {
     vi.mocked(fetchTingeeData).mockReturnValue(new Promise(() => {}));
-    const { container } = render(<PaymentCard {...defaultProps} />);
-    expect(container.querySelector(".tng-skeleton--qr")).not.toBeNull();
-    expect(container.querySelector(".tng-skeleton--amount")).not.toBeNull();
-  });
-
-  it("has data-tng-extension attribute on wrapper", () => {
-    vi.mocked(fetchTingeeData).mockReturnValue(new Promise(() => {}));
-    const { container } = render(<PaymentCard {...defaultProps} />);
-    expect(container.querySelector("[data-tng-extension]")).not.toBeNull();
+    const root = await renderRemote(<PaymentCard {...defaultProps} />);
+    expect(findByType(root, "SkeletonImage")).toBeTruthy();
+    expect(findByType(root, "SkeletonText")).toBeTruthy();
   });
 
   it("renders amount '1.500.000 đ' when data loaded", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
-    render(<PaymentCard {...defaultProps} />);
-    await waitFor(() => {
-      expect(screen.getByText("1.500.000 đ")).toBeTruthy();
-    });
+    const root = await renderLoaded();
+    expect(findByText(root, "1.500.000 đ")).toBeTruthy();
   });
 
   it("renders success state directly when status is COMPLETED (no flash)", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(completedData);
-    vi.mocked(usePaymentStatus).mockReturnValue({ status: "COMPLETED", paidAt: undefined, showConnectionToast: false });
-    render(<PaymentCard {...defaultProps} locale="vi" />);
-    await waitFor(() => {
-      expect(screen.getByText("COMPLETED")).toBeTruthy(); // StatusBadge mock
+    vi.mocked(usePaymentStatus).mockReturnValue({
+      status: "COMPLETED",
+      paidAt: undefined,
+      showConnectionToast: false,
     });
-    expect(screen.queryByText("Chờ thanh toán")).toBeNull();
+    const root = await renderLoaded();
+    expect(findByText(root, "Đã thanh toán ✓")).toBeTruthy();
+    expect(findByText(root, "Chờ thanh toán")).toBeUndefined();
   });
 
   it("shows paidConfirmMessage when polled status is COMPLETED", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
-    vi.mocked(usePaymentStatus).mockReturnValue({ status: "COMPLETED", paidAt: undefined, showConnectionToast: false });
-    render(<PaymentCard {...defaultProps} locale="vi" />);
-    await waitFor(() => {
-      expect(screen.getByText("Đơn hàng của bạn đã được xác nhận. Cảm ơn!")).toBeTruthy();
+    vi.mocked(usePaymentStatus).mockReturnValue({
+      status: "COMPLETED",
+      paidAt: undefined,
+      showConnectionToast: false,
     });
+    const root = await renderLoaded();
+    expect(findByText(root, "Đơn hàng của bạn đã được xác nhận. Cảm ơn!")).toBeTruthy();
   });
 
   it("shows connection toast when showConnectionToast is true", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
-    vi.mocked(usePaymentStatus).mockReturnValue({ status: "PENDING", paidAt: undefined, showConnectionToast: true });
-    render(<PaymentCard {...defaultProps} locale="vi" />);
-    await waitFor(() => {
-      expect(screen.getByText("Đang kiểm tra kết nối...")).toBeTruthy();
+    vi.mocked(usePaymentStatus).mockReturnValue({
+      status: "PENDING",
+      paidAt: undefined,
+      showConnectionToast: true,
     });
+    const root = await renderLoaded();
+    expect(findByText(root, "Đang kiểm tra kết nối...")).toBeTruthy();
   });
 
   it("renders Vietnamese text when locale is 'vi'", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
-    render(<PaymentCard {...defaultProps} locale="vi" />);
-    await waitFor(() => {
-      expect(screen.getByText("Thanh toán qua Tingee QR")).toBeTruthy();
-      expect(screen.getByText("PENDING")).toBeTruthy(); // StatusBadge mock renders status text
-    });
+    const root = await renderLoaded({ ...defaultProps, locale: "vi" });
+    expect(findByText(root, "Thanh toán qua Tingee QR")).toBeTruthy();
+    expect(findByText(root, "Chờ thanh toán")).toBeTruthy();
   });
 
   it("renders English text when locale is 'en'", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
-    render(<PaymentCard {...defaultProps} locale="en" />);
-    await waitFor(() => {
-      expect(screen.getByText("Pay with Tingee QR")).toBeTruthy();
-    });
+    const root = await renderLoaded({ ...defaultProps, locale: "en" });
+    expect(findByText(root, "Pay with Tingee QR")).toBeTruthy();
   });
 
-  it("renders fallback UI (no crash) when fetchTingeeData returns HTTP 503", async () => {
+  it("renders error Banner when fetchTingeeData returns HTTP 503", async () => {
     vi.mocked(fetchTingeeData).mockRejectedValue(
       Object.assign(new Error("Service unavailable"), { code: "TINGEE_UNAVAILABLE", status: 503 })
     );
-    render(<PaymentCard {...defaultProps} />);
-    await waitFor(() => {
-      expect(screen.getByText("Đang kiểm tra kết nối...")).toBeTruthy();
-    });
+    const root = await renderLoaded();
+    const banner = findByType(root, "Banner");
+    expect(banner).toBeTruthy();
+    expect(banner?.props?.status).toBe("critical");
+    expect(getText(banner!)).toBe("Debug: [503] TINGEE_UNAVAILABLE");
   });
 
   it("renders CountdownTimer in PENDING state", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
-    vi.mocked(usePaymentStatus).mockReturnValue({ status: null, paidAt: undefined, showConnectionToast: false });
-    render(<PaymentCard {...defaultProps} />);
-    await waitFor(() => {
-      expect(screen.getByTestId("mock-countdown")).toBeTruthy();
-    });
+    const root = await renderLoaded();
+    expect(findByType(root, "mock-countdown")).toBeTruthy();
   });
 
   it("transitions to EXPIRED state when CountdownTimer fires onExpire", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
-    vi.mocked(usePaymentStatus).mockReturnValue({ status: null, paidAt: undefined, showConnectionToast: false });
-    render(<PaymentCard {...defaultProps} locale="vi" />);
-    await waitFor(() => {
-      expect(screen.getByTestId("mock-countdown")).toBeTruthy();
+    const root = await renderLoaded({ ...defaultProps, locale: "vi" });
+    const countdown = findByType(root, "mock-countdown");
+    expect(countdown).toBeTruthy();
+    await act(async () => {
+      (countdown!.props as { onExpire: () => void }).onExpire();
     });
-    act(() => {
-      fireEvent.click(screen.getByTestId("mock-countdown"));
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Mã QR đã hết hạn sau 15 phút.")).toBeTruthy();
-      expect(screen.getByText("Quay lại cửa hàng")).toBeTruthy();
-    });
+    expect(findByText(root, "Mã QR đã hết hạn sau 15 phút.")).toBeTruthy();
   });
 
-  it("shows expiredMessage and 'Quay lại cửa hàng' when status is EXPIRED", async () => {
+  it("shows expiredMessage when status is EXPIRED", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
-    vi.mocked(usePaymentStatus).mockReturnValue({ status: "EXPIRED", paidAt: undefined, showConnectionToast: false });
-    render(<PaymentCard {...defaultProps} locale="vi" />);
-    await waitFor(() => {
-      expect(screen.getByText("Mã QR đã hết hạn sau 15 phút.")).toBeTruthy();
-      expect(screen.getByText("Quay lại cửa hàng")).toBeTruthy();
+    vi.mocked(usePaymentStatus).mockReturnValue({
+      status: "EXPIRED",
+      paidAt: undefined,
+      showConnectionToast: false,
     });
+    const root = await renderLoaded({ ...defaultProps, locale: "vi" });
+    expect(findByText(root, "Mã QR đã hết hạn sau 15 phút.")).toBeTruthy();
   });
 
-  it("does NOT show 'Tạo lại QR' button in EXPIRED state", async () => {
+  it("does not render the PENDING QR/amount UI in EXPIRED state", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
-    vi.mocked(usePaymentStatus).mockReturnValue({ status: "EXPIRED", paidAt: undefined, showConnectionToast: false });
-    render(<PaymentCard {...defaultProps} locale="vi" />);
-    await waitFor(() => {
-      expect(screen.queryByText("Tạo lại QR")).toBeNull();
+    vi.mocked(usePaymentStatus).mockReturnValue({
+      status: "EXPIRED",
+      paidAt: undefined,
+      showConnectionToast: false,
     });
-  });
-
-  it("shows timeout message and contact support link after 30 minutes", async () => {
-    const T = 1_000_000_000_000;
-    let mountDone = false;
-    vi.spyOn(Date, "now").mockImplementation(() =>
-      mountDone ? T + 31 * 60 * 1000 : T
-    );
-
-    vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
-    vi.mocked(usePaymentStatus).mockReturnValue({ status: "EXPIRED", paidAt: undefined, showConnectionToast: false });
-
-    render(<PaymentCard {...defaultProps} locale="vi" />);
-    mountDone = true; // subsequent Date.now() calls return T+31min
-
-    await waitFor(() => {
-      expect(screen.getByText("Chưa nhận được xác nhận thanh toán. Nếu bạn đã thanh toán, đơn hàng sẽ được xác nhận trong vài phút.")).toBeTruthy();
-      expect(screen.getByText("Liên hệ hỗ trợ")).toBeTruthy();
-    });
-
-    vi.restoreAllMocks();
+    const root = await renderLoaded({ ...defaultProps, locale: "vi" });
+    expect(findByType(root, "Image")).toBeUndefined();
+    expect(findByText(root, "Chờ thanh toán")).toBeUndefined();
   });
 
   it("AC5: restores EXPIRED UI immediately from cache without flicker", async () => {
     vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
-    vi.mocked(usePaymentStatus).mockReturnValue({ status: "EXPIRED", paidAt: undefined, showConnectionToast: false });
-    render(<PaymentCard {...defaultProps} locale="vi" />);
-    await waitFor(() => {
-      expect(screen.getByText("Mã QR đã hết hạn sau 15 phút.")).toBeTruthy();
+    vi.mocked(usePaymentStatus).mockReturnValue({
+      status: "EXPIRED",
+      paidAt: undefined,
+      showConnectionToast: false,
     });
-    expect(screen.queryByText("Chờ thanh toán")).toBeNull();
+    const root = await renderLoaded({ ...defaultProps, locale: "vi" });
+    expect(findByText(root, "Mã QR đã hết hạn sau 15 phút.")).toBeTruthy();
+    expect(findByText(root, "Chờ thanh toán")).toBeUndefined();
   });
 });

@@ -29,7 +29,7 @@ describe("usePaymentStatus", () => {
   it("polls immediately (0ms) when status is PENDING", async () => {
     mockFetch.mockResolvedValue({ status: "PENDING" });
 
-    const { result } = renderHook(() =>
+    renderHook(() =>
       usePaymentStatus("order-1", "PENDING", mockGetToken, mockAppUrl)
     );
 

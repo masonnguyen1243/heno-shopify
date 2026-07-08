@@ -41,7 +41,7 @@ export async function fetchTingeeAccounts(
 
   try {
     // merchantId is only needed for Master Merchant access — regular merchants omit it
-    const vaResult = await (client as any).bank.getVaPaging({
+    const vaResult = await client.bank.getVaPaging({
       skipCount: 0,
       maxResultCount: 50,
     });
@@ -50,7 +50,7 @@ export async function fetchTingeeAccounts(
       return [];
     }
 
-    return (vaItems as any[])
+    return vaItems
       .filter((va) => va.vaAccountNumber && va.bankBin)
       .map((va) => ({
         accountNumber: va.accountNumber as string,
@@ -77,7 +77,7 @@ export async function verifyCredentials(
   });
 
   try {
-    const result = await (client as any).bank.getBanks();
+    const result = await client.bank.getBanks();
     if (!isSuccessResponse(result)) {
       throw new InvalidCredentialsError(result?.message ?? "Non-success response from Tingee");
     }
@@ -110,7 +110,7 @@ export async function generateQR(params: {
     timeout: env.TINGEE_SDK_TIMEOUT_MS,
   });
   try {
-    const result = await (client as any).bank.generateVietQr({
+    const result = await client.bank.generateVietQr({
       accountNumber: params.accountNumber,
       bankBin: params.bankBin,
       amount: params.amount,
@@ -149,7 +149,7 @@ export async function generateDeeplink(params: {
       environment: "production",
       timeout: env.TINGEE_SDK_TIMEOUT_MS,
     });
-    const result = await (client as any).deepLink.generate({
+    const result = await client.deepLink.generate({
       type: "bank-transfer",
       qrCode: params.qrCode,
       bankBin: params.bankBin,

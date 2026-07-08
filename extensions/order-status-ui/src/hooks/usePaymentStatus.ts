@@ -28,7 +28,9 @@ function writeCache(orderId: string, status: PaymentStatus, paidAt?: string): vo
       `tng_payment_${orderId}`,
       JSON.stringify({ status, paidAt, cachedAt: Date.now() })
     );
-  } catch {}
+  } catch {
+    // best-effort cache — sessionStorage may be unavailable (private mode, quota)
+  }
 }
 
 export type UsePaymentStatusResult = {
@@ -106,7 +108,11 @@ export function usePaymentStatus(
         // being created by the concurrent fetchTingeeData call — allow retries before giving up.
         const isEarly404 = httpStatus === 404 && consecutiveFailuresRef.current < 3;
         if (!isEarly404) {
-          try { if (orderId) sessionStorage.removeItem(`tng_payment_${orderId}`); } catch {}
+          try {
+            if (orderId) sessionStorage.removeItem(`tng_payment_${orderId}`);
+          } catch {
+            // best-effort cache eviction
+          }
           return;
         }
       }
