@@ -20,6 +20,8 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: DIRECT_URL
+        sync: false
       - key: ENCRYPTION_KEY
         sync: false
       - key: TINGEE_SDK_TIMEOUT_MS
