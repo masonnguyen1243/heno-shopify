@@ -1,6 +1,5 @@
 import db from "../db.server";
 import { encrypt, decrypt } from "../lib/encryption.server";
-import { sanitizeForLog } from "../lib/logger.server";
 import { env } from "../lib/env.server";
 
 export async function saveCredential(

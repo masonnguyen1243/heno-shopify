@@ -156,7 +156,7 @@ export function CredentialForm({ hasCredential, savedAccount }: CredentialFormPr
               <Banner tone="info" title="Thiết lập phương thức thanh toán">
                 Để khách hàng thấy tùy chọn Tingee QR tại checkout, hãy thêm thủ công một lần trong Shopify Admin:{" "}
                 <strong>Settings → Payments → Manual payment methods → Add manual payment method</strong>,
-                đặt tên <strong>"Thanh toán qua Tingee QR"</strong>.
+                đặt tên <strong>&quot;Thanh toán qua Tingee QR&quot;</strong>.
               </Banner>
             )}
 
@@ -266,7 +266,7 @@ export function CredentialForm({ hasCredential, savedAccount }: CredentialFormPr
             >
               <Modal.Section>
                 <Text as="p">
-                  Xóa Credential sẽ ngắt kết nối tài khoản Tingee khỏi ứng dụng. Bạn cũng cần tự xóa phương thức thanh toán "Thanh toán qua Tingee QR" trong Shopify Admin → Settings → Payments.
+                  Xóa Credential sẽ ngắt kết nối tài khoản Tingee khỏi ứng dụng. Bạn cũng cần tự xóa phương thức thanh toán &quot;Thanh toán qua Tingee QR&quot; trong Shopify Admin → Settings → Payments.
                 </Text>
               </Modal.Section>
             </Modal>

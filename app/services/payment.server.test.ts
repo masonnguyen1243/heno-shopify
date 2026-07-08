@@ -82,7 +82,14 @@ const mockParams = {
   amount: 150000,
 };
 
-const mockCredential = { clientId: "cid", secretToken: "st" };
+const mockCredential = {
+  clientId: "cid",
+  secretToken: "st",
+  accountNumber: "12345678",
+  vaAccountNumber: "VA12345678",
+  bankBin: "970436",
+  bankName: "Vietcombank",
+};
 
 const mockQrResult = {
   qrCode: "QR_TEXT",

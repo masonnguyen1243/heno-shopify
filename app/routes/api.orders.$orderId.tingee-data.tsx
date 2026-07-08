@@ -9,7 +9,9 @@ function addCorsToThrownResponse(err: unknown): never {
     try {
       err.headers.set("Access-Control-Allow-Origin", "*");
       err.headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
-    } catch {}
+    } catch {
+      // best-effort — thrown Response may have immutable headers
+    }
   }
   throw err;
 }
@@ -18,7 +20,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { sessionToken, cors } = await authenticate.public.checkout(request).catch(addCorsToThrownResponse);
 
   // Shop from sessionToken — never from URL params (IDOR prevention)
-  const dest = (sessionToken as any)?.dest;
+  const dest = sessionToken?.dest;
   if (!dest || typeof dest !== "string") {
     return cors(Response.json(
       { error: "Invalid session", code: "UNAUTHORIZED" },

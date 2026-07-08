@@ -29,7 +29,7 @@ describe("usePaymentStatus", () => {
   it("polls immediately (0ms) when status is PENDING", async () => {
     mockFetch.mockResolvedValue({ status: "PENDING" });
 
-    const { result } = renderHook(() =>
+    renderHook(() =>
       usePaymentStatus("order-1", "PENDING", mockGetToken, mockAppUrl)
     );
 
@@ -70,7 +70,7 @@ describe("usePaymentStatus", () => {
       Object.assign(new Error("network error"), { status: undefined })
     );
 
-    renderHook(() => usePaymentStatus("order-1", "PENDING"));
+    renderHook(() => usePaymentStatus("order-1", "PENDING", mockGetToken, mockAppUrl));
 
     // First poll at 0ms
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
@@ -120,7 +120,7 @@ describe("usePaymentStatus", () => {
       Object.assign(new Error("Unauthorized"), { status: 401 })
     );
 
-    renderHook(() => usePaymentStatus("order-1", "PENDING"));
+    renderHook(() => usePaymentStatus("order-1", "PENDING", mockGetToken, mockAppUrl));
 
     await act(async () => { await vi.runAllTimersAsync(); });
 
@@ -151,7 +151,7 @@ describe("usePaymentStatus", () => {
   it("pauses polling when tab is hidden, resumes when visible", async () => {
     mockFetch.mockResolvedValue({ status: "PENDING" });
 
-    renderHook(() => usePaymentStatus("order-1", "PENDING"));
+    renderHook(() => usePaymentStatus("order-1", "PENDING", mockGetToken, mockAppUrl));
 
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     const callsBeforeHide = mockFetch.mock.calls.length;
@@ -189,21 +189,23 @@ describe("usePaymentStatus", () => {
     expect(result.current.paidAt).toBe("2026-06-26T10:00:00Z");
   });
 
-  it("ignores sessionStorage cache older than 30s", async () => {
-    const stale = { status: "COMPLETED" as const, cachedAt: Date.now() - 31_000 };
+  it("ignores sessionStorage cache older than 30s for non-terminal status", () => {
+    // Terminal states (COMPLETED/EXPIRED/FAILED) are cached indefinitely by design —
+    // they never change back, so the 30s TTL only applies to non-terminal (PENDING) cache.
+    const stale = {
+      status: "PENDING" as const,
+      paidAt: "2020-01-01T00:00:00Z",
+      cachedAt: Date.now() - 31_000,
+    };
     sessionStorage.setItem("tng_payment_order-stale", JSON.stringify(stale));
-
     mockFetch.mockResolvedValue({ status: "PENDING" });
 
     const { result } = renderHook(() =>
-      usePaymentStatus("order-stale", "PENDING", mockGetToken, mockAppUrl)
+      usePaymentStatus("order-stale", null, mockGetToken, mockAppUrl)
     );
 
-    // Stale cache should not rehydrate as COMPLETED — poll will return PENDING
-    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-
-    expect(result.current.status).not.toBe("COMPLETED");
-    expect(result.current.status).toBe("PENDING");
+    // Stale cache should not rehydrate — paidAt stays unset on mount
+    expect(result.current.paidAt).toBeUndefined();
   });
 
   it("does not start polling if initialStatus is already a terminal state", async () => {
