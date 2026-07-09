@@ -2,7 +2,7 @@
 
 client_id = "d8f0030938b3293999c579dd972bc848"
 name = "tingee-payment-app"
-application_url = "https://example.com"
+application_url = "https://tingee-payment-app.onrender.com"
 embedded = true
 
 [access_scopes]
@@ -17,7 +17,7 @@ api_version = "2025-07"
 
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://tingee-payment-app.onrender.com/api/auth" ]
 
 [build]
 include_config_on_deploy = true

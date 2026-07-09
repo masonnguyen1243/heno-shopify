@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "2d2796c7a8ce76b093f05427192ab1f8"
-application_url = "https://example.com"
+application_url = "https://tingee-payment-app.onrender.com"
 embedded = true
 name = "tingee-payment-app"
 
@@ -10,7 +10,7 @@ name = "tingee-payment-app"
 scopes = "read_orders,write_orders"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://tingee-payment-app.onrender.com/api/auth" ]
 
 [webhooks]
 api_version = "2026-07"
