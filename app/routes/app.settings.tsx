@@ -117,6 +117,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
   });
 
+  const rawUrl = new URL(request.url);
+  const proto = request.headers.get("x-forwarded-proto") ?? rawUrl.protocol.replace(":", "");
+  const host = request.headers.get("x-forwarded-host") ?? rawUrl.host;
+  const appOrigin = `${proto}://${host}`;
+
   return {
     hasCredential: !!merchant?.credential,
     savedAccount: merchant?.credential?.accountNumber
@@ -126,12 +131,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           bankName: merchant.credential.bankName ?? "",
         }
       : null,
+    shop,
+    appOrigin,
   };
 };
 
 export default function Settings() {
-  const { hasCredential, savedAccount } = useLoaderData<typeof loader>();
-  return <CredentialForm hasCredential={hasCredential} savedAccount={savedAccount} />;
+  const { hasCredential, savedAccount, shop, appOrigin } = useLoaderData<typeof loader>();
+  return (
+    <CredentialForm
+      hasCredential={hasCredential}
+      savedAccount={savedAccount}
+      shop={shop}
+      appOrigin={appOrigin}
+    />
+  );
 }
 
 export const headers: HeadersFunction = (headersArgs) => {

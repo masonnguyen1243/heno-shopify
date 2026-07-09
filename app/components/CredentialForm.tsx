@@ -14,7 +14,7 @@ import {
   Modal,
   Select,
 } from "@shopify/polaris";
-import { HideIcon, ViewIcon } from "@shopify/polaris-icons";
+import { HideIcon, ViewIcon, DuplicateIcon } from "@shopify/polaris-icons";
 
 interface SavedAccount {
   accountNumber: string;
@@ -25,6 +25,8 @@ interface SavedAccount {
 interface CredentialFormProps {
   hasCredential: boolean;
   savedAccount: SavedAccount | null;
+  shop: string;
+  appOrigin: string;
 }
 
 type TingeeBankAccount = {
@@ -45,7 +47,7 @@ type ActionData =
     }
   | undefined;
 
-export function CredentialForm({ hasCredential, savedAccount }: CredentialFormProps) {
+export function CredentialForm({ hasCredential, savedAccount, shop, appOrigin }: CredentialFormProps) {
   const fetcher = useFetcher<ActionData>();
   const [clientId, setClientId] = useState("");
   const [secretToken, setSecretToken] = useState("");
@@ -55,6 +57,14 @@ export function CredentialForm({ hasCredential, savedAccount }: CredentialFormPr
   const [selectedAccountKey, setSelectedAccountKey] = useState("");
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [webhookUrlCopied, setWebhookUrlCopied] = useState(false);
+
+  const webhookUrl = `${appOrigin}/webhooks/tingee?shop=${encodeURIComponent(shop)}`;
+  const handleCopyWebhookUrl = () => {
+    navigator.clipboard.writeText(webhookUrl);
+    setWebhookUrlCopied(true);
+    setTimeout(() => setWebhookUrlCopied(false), 2000);
+  };
 
   const actionData = fetcher.data;
   const isVerifying = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "verify";
@@ -157,6 +167,33 @@ export function CredentialForm({ hasCredential, savedAccount }: CredentialFormPr
                 Để khách hàng thấy tùy chọn Tingee QR tại checkout, hãy thêm thủ công một lần trong Shopify Admin:{" "}
                 <strong>Settings → Payments → Manual payment methods → Add manual payment method</strong>,
                 đặt tên <strong>&quot;Thanh toán qua Tingee QR&quot;</strong>.
+              </Banner>
+            )}
+            {(localHasCredential || actionData?.success) && (
+              <Banner tone="warning" title="Bước cuối cùng: cấu hình Webhook IPN trên Tingee">
+                <BlockStack gap="200">
+                  <Text as="p">
+                    Vào portal Tingee của bạn → mục cấu hình Webhook/IPN → dán URL dưới đây để
+                    Tingee báo trạng thái thanh toán về đúng cửa hàng này. Thiếu bước này, đơn
+                    hàng sẽ không tự động chuyển sang &quot;Đã thanh toán&quot; sau khi khách quét mã QR.
+                  </Text>
+                  <TextField
+                    label="Webhook IPN URL"
+                    labelHidden
+                    value={webhookUrl}
+                    readOnly
+                    autoComplete="off"
+                    connectedRight={
+                      <Button
+                        icon={DuplicateIcon}
+                        onClick={handleCopyWebhookUrl}
+                        accessibilityLabel="Sao chép Webhook IPN URL"
+                      >
+                        {webhookUrlCopied ? "Đã sao chép" : "Sao chép"}
+                      </Button>
+                    }
+                  />
+                </BlockStack>
               </Banner>
             )}
 
