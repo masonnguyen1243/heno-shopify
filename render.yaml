@@ -4,7 +4,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     region: singapore
-    plan: starter
+    plan: free
     healthCheckPath: /api/health
     preDeployCommand: npx prisma migrate deploy
     envVars:
