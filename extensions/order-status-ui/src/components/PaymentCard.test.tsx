@@ -147,7 +147,7 @@ describe("PaymentCard", () => {
     expect(findByText(root, "Pay with Tingee QR")).toBeTruthy();
   });
 
-  it("renders error Banner when fetchTingeeData returns HTTP 503", async () => {
+  it("renders a friendly error Banner (no raw error codes) when fetchTingeeData returns HTTP 503", async () => {
     vi.mocked(fetchTingeeData).mockRejectedValue(
       Object.assign(new Error("Service unavailable"), { code: "TINGEE_UNAVAILABLE", status: 503 })
     );
@@ -155,7 +155,32 @@ describe("PaymentCard", () => {
     const banner = findByType(root, "Banner");
     expect(banner).toBeTruthy();
     expect(banner?.props?.status).toBe("critical");
-    expect(getText(banner!)).toBe("Debug: [503] TINGEE_UNAVAILABLE");
+    expect(banner?.props?.title).toBe("Không thể tải mã thanh toán");
+    const bannerText = getText(banner!);
+    expect(bannerText).not.toContain("503");
+    expect(bannerText).not.toContain("TINGEE_UNAVAILABLE");
+    expect(bannerText).not.toContain("Debug");
+  });
+
+  it("shows a Retry button in the error state that re-fetches payment data", async () => {
+    vi.mocked(fetchTingeeData).mockRejectedValueOnce(
+      Object.assign(new Error("Service unavailable"), { code: "TINGEE_UNAVAILABLE", status: 503 })
+    );
+    const root = await renderLoaded();
+    expect(findByType(root, "Banner")).toBeTruthy();
+
+    vi.mocked(fetchTingeeData).mockResolvedValue(pendingData);
+    const retryButton = findByType(root, "Button");
+    expect(retryButton).toBeTruthy();
+
+    await act(async () => {
+      (retryButton!.props as { onPress: () => void }).onPress();
+      await new Promise((r) => setTimeout(r, 0));
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(findByType(root, "Banner")).toBeUndefined();
+    expect(findByText(root, "1.500.000 đ")).toBeTruthy();
   });
 
   it("renders CountdownTimer in PENDING state", async () => {

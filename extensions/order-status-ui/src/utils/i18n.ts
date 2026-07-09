@@ -13,6 +13,9 @@ const translations = {
     paidConfirmMessage: "Đơn hàng của bạn đã được xác nhận. Cảm ơn!",
     timeoutMessage: "Chưa nhận được xác nhận thanh toán. Nếu bạn đã thanh toán, đơn hàng sẽ được xác nhận trong vài phút.",
     contactSupport: "Liên hệ hỗ trợ",
+    paymentUnavailableTitle: "Không thể tải mã thanh toán",
+    paymentUnavailableMessage: "Đơn hàng của bạn đã được ghi nhận. Chúng tôi đang gặp sự cố kết nối tạm thời với cổng thanh toán Tingee và chưa thể hiển thị mã QR. Vui lòng thử lại.",
+    retry: "Thử lại",
   },
   en: {
     loading: "Loading...",
@@ -28,6 +31,9 @@ const translations = {
     paidConfirmMessage: "Your order has been confirmed. Thank you!",
     timeoutMessage: "Payment confirmation not yet received. If you've already paid, your order will be confirmed in a few minutes.",
     contactSupport: "Contact support",
+    paymentUnavailableTitle: "We couldn't load your payment code",
+    paymentUnavailableMessage: "Your order has been placed successfully. We're having a temporary issue connecting to the Tingee payment gateway, so we can't show your QR code right now. Please try again.",
+    retry: "Try again",
   },
 };
 

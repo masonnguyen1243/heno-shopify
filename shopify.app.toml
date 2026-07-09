@@ -11,6 +11,11 @@ scopes = "read_orders,write_orders"
 [webhooks]
 api_version = "2025-07"
 
+  [webhooks.privacy_compliance]
+  customer_deletion_url = "https://tingee-payment-app.onrender.com/webhooks/customers/redact"
+  customer_data_request_url = "https://tingee-payment-app.onrender.com/webhooks/customers/data_request"
+  shop_deletion_url = "https://tingee-payment-app.onrender.com/webhooks/shop/redact"
+
   [[webhooks.subscriptions]]
   uri = "/webhooks/app/uninstalled"
   topics = [ "app/uninstalled" ]

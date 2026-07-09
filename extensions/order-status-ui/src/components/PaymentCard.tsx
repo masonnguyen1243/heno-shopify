@@ -6,6 +6,7 @@ import {
   Text,
   TextBlock,
   Banner,
+  Button,
   SkeletonImage,
   SkeletonText,
 } from "@shopify/ui-extensions-react/checkout";
@@ -32,10 +33,14 @@ type FetchError = { message: string; status?: number; code?: string };
 
 export function PaymentCard({ orderId, amount, orderNumber, locale }: Props) {
   const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [fetchError, setFetchError] = useState<FetchError | null>(null);
   const [data, setData] = useState<TingeeDataResponse | null>(null);
   const [localExpired, setLocalExpired] = useState(false);
   const handleLocalExpiry = useCallback(() => setLocalExpired(true), []);
+  const [retryToken, setRetryToken] = useState(0);
+  const handleRetry = useCallback(() => {
+    setLoadState("loading");
+    setRetryToken((n) => n + 1);
+  }, []);
 
   const sessionToken = useSessionToken();
   const settings = useSettings();
@@ -72,12 +77,11 @@ export function PaymentCard({ orderId, amount, orderNumber, locale }: Props) {
         if (!controller.signal.aborted) {
           const fe: FetchError = { message: err?.message ?? "Unknown", status: err?.status, code: err?.code };
           console.error("[Tingee] fetchTingeeData failed:", fe.message, "status:", fe.status, "code:", fe.code);
-          setFetchError(fe);
           setLoadState("error");
         }
       });
     return () => controller.abort();
-  }, [appUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [appUrl, retryToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const baseStatus = polledStatus ?? (loadState === "loaded" ? (data?.status ?? null) : null);
   const effectiveStatus: PaymentStatus | null =
@@ -93,13 +97,17 @@ export function PaymentCard({ orderId, amount, orderNumber, locale }: Props) {
   }
 
   if (loadState === "error") {
-    const detail = fetchError
-      ? `[${fetchError.status ?? "net"}] ${fetchError.code ?? fetchError.message}`
-      : "unknown";
+    // Full error detail (status/code) is already logged via console.error above —
+    // buyers only ever see a friendly message, never raw error codes.
     return (
-      <Banner status="critical">
-        <TextBlock>Debug: {detail}</TextBlock>
-      </Banner>
+      <BlockStack spacing="base" inlineAlignment="center">
+        <Banner status="critical" title={t("paymentUnavailableTitle", locale)}>
+          <TextBlock>{t("paymentUnavailableMessage", locale)}</TextBlock>
+        </Banner>
+        <Button kind="secondary" onPress={handleRetry}>
+          {t("retry", locale)}
+        </Button>
+      </BlockStack>
     );
   }
 
