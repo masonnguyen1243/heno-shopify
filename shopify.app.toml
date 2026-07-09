@@ -20,6 +20,10 @@ api_version = "2025-07"
   uri = "/webhooks/app/uninstalled"
   topics = [ "app/uninstalled" ]
 
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
+
 
 [auth]
 redirect_urls = [ "https://tingee-payment-app.onrender.com/api/auth" ]
