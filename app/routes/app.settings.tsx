@@ -117,10 +117,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
   });
 
-  const rawUrl = new URL(request.url);
-  const proto = request.headers.get("x-forwarded-proto") ?? rawUrl.protocol.replace(":", "");
-  const host = request.headers.get("x-forwarded-host") ?? rawUrl.host;
-  const appOrigin = `${proto}://${host}`;
+  // Hardcoded rather than derived from the request or SHOPIFY_APP_URL — this URL is
+  // what merchants paste into Tingee's dashboard once, so it must always point at the
+  // real production backend. The Shopify CLI overwrites SHOPIFY_APP_URL with its own
+  // temporary tunnel address on every `shopify app dev` run, so that env var can't be
+  // trusted here. Update this if the app ever moves to a different domain.
+  const appOrigin = "https://tingee-payment-app.onrender.com";
 
   return {
     hasCredential: !!merchant?.credential,
