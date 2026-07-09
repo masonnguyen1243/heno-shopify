@@ -1,6 +1,6 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "d8f0030938b3293999c579dd972bc848"
+client_id = "2d2796c7a8ce76b093f05427192ab1f8"
 name = "tingee-payment-app"
 application_url = "https://tingee-payment-app.onrender.com"
 embedded = true
